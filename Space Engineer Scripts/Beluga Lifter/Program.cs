@@ -112,7 +112,7 @@ namespace IngameScript
                 StartLocation = RController.GetPosition();
                 RControllers.ClearWaypoints();
                 AppLocation.X = StartLocation.X + TargetAltitude;
-                AppLocation.Y = StartLocation.Y + 0;
+                AppLocation.Y = StartLocation.Y + 0; 
                 AppLocation.Z = StartLocation.Z + 0;
                 RControllers.AddWaypoint(AppLocation, (Ship + "Approach Location"));
                 RControllers.AddWaypoint(StartLocation, (Ship + "Landing Location"));
