@@ -24,23 +24,31 @@ namespace IngameScript
         const string RC = (Ship + gap + "Remote Control"); //Name of Remote Controller
         const string Gyro = (Ship + gap + "Gyro"); //Name of Gyro
         const string LA = (Ship + gap + "Laser Antenna"); //Name of Laser Antenna
+        const string CC = (Ship + gap + "Cruise Pro");
+        const string LG = (Ship + gap + "Landing Gear");
         const double TargetAltitude = 10000; // Meters
         //Script - No more editable functions
         string Status = "Not Ready";
         bool LaunchReady = false;
         bool TargetMet = false;
         bool RCFailed = false;
+        bool GearDown = true;
         const string RCFailedMSG = (Ship + "Controller not found with name " + RC + "!");
+        bool CCFailed = false;
+        const string CCFailedMSG = (Ship + "Computer not found with name " + CC + "!");
         bool GyroFailed = false;
         const string GyroFailedMSG = (Ship + "Gyro not found with name " + Gyro + "!");
         bool LAFailed = false;
         const string LAFailedMSG = (Ship + "Antenna not found with name " + LA + "!");
+        bool LGFailed = false;
+        const string LGFailedMSG = (Ship + "Landing Gear Group not found with name " + LA + "!");
         Vector3D StartLocation;
         Vector3D GyroStartLocation;
         Vector3D Distance;
         Vector3D AppLocation;
         Vector3D Position;
-        double elev;
+        double Elev;
+        double StartElev;
 
         public Program()
         {
@@ -55,8 +63,12 @@ namespace IngameScript
 
         }
 
-        public void Main()
+        public void Main(string arg)
         {
+            if (arg == "ReadyUp")
+            {
+                Status = "Not Ready";
+            }
             Echo(Ship + " Control Pro");
             IMyShipController RController;
             RController = GridTerminalSystem.GetBlockWithName(RC) as IMyShipController;
@@ -74,6 +86,15 @@ namespace IngameScript
             {
                 Echo(RCFailedMSG);
                 RCFailed = true;
+                Status = "Failed";
+                return;
+            }
+            IMyProgrammableBlock CCruise;
+            CCruise = GridTerminalSystem.GetBlockWithName(CC) as IMyProgrammableBlock;
+            if (CCruise == null)
+            {
+                Echo(CCFailedMSG);
+                CCFailed = true;
                 Status = "Failed";
                 return;
             }
@@ -104,8 +125,17 @@ namespace IngameScript
                 Status = "Failed";
                 return;
             }
+            IMyTimerBlock LGear;
+            LGear = GridTerminalSystem.GetBlockWithName(LG) as IMyTimerBlock;
+            if (LGear == null)
+            {
+                Echo(LGFailedMSG);
+                LGFailed = true;
+                Status = "Failed";
+                return;
+            }
 
-            RController.TryGetPlanetElevation(MyPlanetElevation.Surface, out elev);
+            RController.TryGetPlanetElevation(MyPlanetElevation.Surface, out Elev);
             Position = RController.GetPosition();
 
             if (Status == "Failed") //A componant has failed - Check Ship
@@ -113,6 +143,10 @@ namespace IngameScript
                 if (RCFailed == true)
                 {
                     Echo(RCFailedMSG);
+                }
+                if (CCFailed == true)
+                {
+                    Echo(CCFailedMSG);
                 }
                 if (GyroFailed == true)
                 {
@@ -122,8 +156,12 @@ namespace IngameScript
                 {
                     Echo(LAFailedMSG);
                 }
+                if (LGFailed == true)
+                {
+                    Echo(LGFailedMSG);
+                }
                 Echo(Status);
-                string msg = ("Ship" + ":" + Ship + "," + "Status" + ":" + Status + "," + "Elevation" + ":" + elev + "," + "Position" + ":" + Position + ",");
+                string msg = ("Ship" + ":" + Ship + "," + "Status" + ":" + Status + "," + "Elevation" + ":" + Elev + "," + "Position" + ":" + Position + ",");
                 var keyValuePairs = msg.Split(',').Select(x => x.Split(':')).Where(x => x.Length == 2).ToDictionary(x => x.First(), x => x.Last());
                 LAntenna.TransmitMessage(msg);
                 Status = "Failed";
@@ -131,7 +169,7 @@ namespace IngameScript
             if (Status == "Not Ready") //Prepare GPS Waypoints for the Autopilot
             {
                 Echo(Status);
-                double StartAltitude = elev;
+                StartElev = Elev;
                 RControllers.SetAutoPilotEnabled(false);
                 StartLocation = RController.GetPosition();
                 RControllers.ClearWaypoints();
@@ -143,7 +181,7 @@ namespace IngameScript
                 AppLocation = (StartLocation + Distance);
                 RControllers.AddWaypoint(AppLocation, (Ship + "Approach Location"));
                 RControllers.AddWaypoint(StartLocation, (Ship + "Landing Location"));
-                string msg = ("Ship" + ":" + Ship + "," + "Status" + ":" + Status + "," + "Start Elevation" + ":" + StartAltitude + "," + "Start Position" + ":" + StartLocation + ",");
+                string msg = ("Ship" + ":" + Ship + "," + "Status" + ":" + Status + "," + "Start Elevation" + ":" + StartElev + "," + "Start Position" + ":" + StartLocation + ",");
                 LAntenna.TransmitMessage(msg);
                 Status = "Ready";
             }
@@ -151,28 +189,67 @@ namespace IngameScript
             {
                 Echo(Status);
                 LaunchReady = true;
-
             }
-            if (Status == "Launching")
+            if (arg == "Launch")
             {
-                Echo(Status);
-                if (elev >= TargetAltitude)
+                Status = "Launching";
+                if (Status == "Launching")
                 {
-                    TargetMet = true;
-                    Status = "Seperation";
+                    CCruise.TryRun("on");
+                    Echo(Status);
+                    return;
                 }
-            }
-            if (Status == "Seperation")
-            {
-                Echo(Status);
-                Status = "Desending";
-            }
-            if (Status == "Desending")
-            {
-                Echo(Status);
-                RControllers.SetAutoPilotEnabled(true);
-                RControllers.SetCollisionAvoidance(false);
-                RControllers.SetDockingMode(true);
+                if (Status == "Launched")
+                {
+                    if (Elev >= StartElev + 50)
+                    {
+                        LGear.ApplyAction("TriggerNow");
+                        GearDown = false;
+                    }
+                    if (Elev >= TargetAltitude)
+                    {
+                        TargetMet = true;
+                        CCruise.TryRun("off");
+                        Status = "Seperation";
+                        return;
+                    }
+                }
+                if (Status == "Seperation")
+                {
+                    Echo(Status);
+                    Status = "Prep Decent";
+                    return;
+                }
+                if (Status == "Prep Decent")
+                {
+                    Echo(Status);
+                    RControllers.SetAutoPilotEnabled(true);
+                    RControllers.SetCollisionAvoidance(false);
+                    RControllers.SetDockingMode(true);
+                    RGyro.GyroOverride = true;
+
+                }
+                if (Status == "Desending")
+                {
+                    if (GearDown == false)
+                    {
+                        Echo(Status);
+                        if (Elev < StartElev + 400)
+                        {
+                            LGear.ApplyAction("TriggerNow");
+                            GearDown = true;
+                        }
+                    }
+                    if (Elev <= StartElev + 20)
+                    {
+                        Echo(Status);
+                        RControllers.SetAutoPilotEnabled(false);
+                        RControllers.SetCollisionAvoidance(false);
+                        RControllers.SetDockingMode(false);
+                        RGyro.GyroOverride = false;
+                        Status = "Landed";
+                    }
+                }
             }
         }
     }
