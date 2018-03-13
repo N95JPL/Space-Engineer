@@ -24,15 +24,20 @@ namespace IngameScript
         const string RC = (Ship + gap + "Remote Control"); //Name of Remote Controller
         const string Gyro = (Ship + gap + "Gyro"); //Name of Gyro
         const string LA = (Ship + gap + "Laser Antenna"); //Name of Laser Antenna
-        const double TargetAltitude = 1000; // Meters
+        const double TargetAltitude = 10000; // Meters
         //Script - No more editable functions
         string Status = "Not Ready";
         bool LaunchReady = false;
         bool TargetMet = false;
-        bool RCFailed = false; const string RCFailedMSG = (Ship + "Controller not found with name " + RC + "!");
-        bool GyroFailed = false; const string GyroFailedMSG = (Ship + "Gyro not found with name " + Gyro + "!");
-        bool LAFailed = false; const string LAFailedMSG = (Ship + "Antenna not found with name " + LA + "!");
+        bool RCFailed = false;
+        const string RCFailedMSG = (Ship + "Controller not found with name " + RC + "!");
+        bool GyroFailed = false;
+        const string GyroFailedMSG = (Ship + "Gyro not found with name " + Gyro + "!");
+        bool LAFailed = false;
+        const string LAFailedMSG = (Ship + "Antenna not found with name " + LA + "!");
         Vector3D StartLocation;
+        Vector3D GyroStartLocation;
+        Vector3D Distance;
         Vector3D AppLocation;
         Vector3D Position;
         double elev;
@@ -45,9 +50,14 @@ namespace IngameScript
         public void Save()
         {
         }
+        public void Reset()
+        {
+
+        }
 
         public void Main()
         {
+            Echo(Ship + " Control Pro");
             IMyShipController RController;
             RController = GridTerminalSystem.GetBlockWithName(RC) as IMyShipController;
             if (RController == null)
@@ -96,45 +106,70 @@ namespace IngameScript
             }
 
             RController.TryGetPlanetElevation(MyPlanetElevation.Surface, out elev);
-            if (Status == "Failed")
-            {
-                string msg = ("Ship" + ":" + Ship + "," + "Status" + ":" + Status + "," + "Elevation" + ":" + elev + "," + "Position" + ":" + Position + ",");
-                Dictionary<string, string> keyValuePairs = msg.Split(',').Select(value => value.Split(':')).ToDictionary(pair => pair[0], pair => pair[1]);
-                string LogShipName = keyValuePairs["Ship"];
-                Echo(LogShipName);
-                LAntenna.TransmitMessage(msg);
+            Position = RController.GetPosition();
 
+            if (Status == "Failed") //A componant has failed - Check Ship
+            {
+                if (RCFailed == true)
+                {
+                    Echo(RCFailedMSG);
+                }
+                if (GyroFailed == true)
+                {
+                    Echo(GyroFailedMSG);
+                }
+                if (LAFailed == true)
+                {
+                    Echo(LAFailedMSG);
+                }
+                Echo(Status);
+                string msg = ("Ship" + ":" + Ship + "," + "Status" + ":" + Status + "," + "Elevation" + ":" + elev + "," + "Position" + ":" + Position + ",");
+                var keyValuePairs = msg.Split(',').Select(x => x.Split(':')).Where(x => x.Length == 2).ToDictionary(x => x.First(), x => x.Last());
+                LAntenna.TransmitMessage(msg);
+                Status = "Failed";
             }
             if (Status == "Not Ready") //Prepare GPS Waypoints for the Autopilot
             {
+                Echo(Status);
                 double StartAltitude = elev;
                 RControllers.SetAutoPilotEnabled(false);
                 StartLocation = RController.GetPosition();
                 RControllers.ClearWaypoints();
-                AppLocation.X = StartLocation.X + TargetAltitude;
-                AppLocation.Y = StartLocation.Y + 0; 
-                AppLocation.Z = StartLocation.Z + 0;
+                //AppLocation.X = StartLocation.X + 500;
+                //AppLocation.Y = StartLocation.Y + 0; 
+                //AppLocation.Z = StartLocation.Z + 0;
+                GyroStartLocation = RGyro.GetPosition();
+                Distance = ((GyroStartLocation - StartLocation) * 83.333);
+                AppLocation = (StartLocation + Distance);
                 RControllers.AddWaypoint(AppLocation, (Ship + "Approach Location"));
                 RControllers.AddWaypoint(StartLocation, (Ship + "Landing Location"));
+                string msg = ("Ship" + ":" + Ship + "," + "Status" + ":" + Status + "," + "Start Elevation" + ":" + StartAltitude + "," + "Start Position" + ":" + StartLocation + ",");
+                LAntenna.TransmitMessage(msg);
                 Status = "Ready";
             }
             if (Status == "Ready")
             {
+                Echo(Status);
+                LaunchReady = true;
 
             }
             if (Status == "Launching")
             {
-                if (elev <= TargetAltitude)
+                Echo(Status);
+                if (elev >= TargetAltitude)
                 {
-
+                    TargetMet = true;
+                    Status = "Seperation";
                 }
             }
             if (Status == "Seperation")
             {
-
+                Echo(Status);
+                Status = "Desending";
             }
             if (Status == "Desending")
             {
+                Echo(Status);
                 RControllers.SetAutoPilotEnabled(true);
                 RControllers.SetCollisionAvoidance(false);
                 RControllers.SetDockingMode(true);
