@@ -1,4 +1,4 @@
-﻿using Sandbox.Game.EntityComponents;
+using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI.Ingame;
 using Sandbox.ModAPI.Interfaces;
 using SpaceEngineers.Game.ModAPI.Ingame;
@@ -195,21 +195,24 @@ namespace IngameScript
                 Status = "Launching";
                 if (Status == "Launching")
                 {
-                    CCruise.TryRun("on");
+                    CCruise.TryRun("on"); //Remove - Timer Replaced
                     Echo(Status);
                     return;
                 }
                 if (Status == "Launched")
                 {
-                    if (Elev >= StartElev + 50)
+                    if (Elev >= StartElev + 20)
                     {
-                        LGear.ApplyAction("TriggerNow");
-                        GearDown = false;
+                        if (GearDown == true)
+                        {
+                           LGear.ApplyAction("TriggerNow");
+                           GearDown = false;
+                        }
                     }
                     if (Elev >= TargetAltitude)
                     {
                         TargetMet = true;
-                        CCruise.TryRun("off");
+                        CCruise.TryRun("off"); //Remove - Timer replaced and moving section
                         Status = "Seperation";
                         return;
                     }
@@ -227,6 +230,7 @@ namespace IngameScript
                     RControllers.SetCollisionAvoidance(false);
                     RControllers.SetDockingMode(true);
                     RGyro.GyroOverride = true;
+                    Status = “Desending”;
 
                 }
                 if (Status == "Desending")
@@ -234,7 +238,7 @@ namespace IngameScript
                     if (GearDown == false)
                     {
                         Echo(Status);
-                        if (Elev < StartElev + 400)
+                        if (Elev < StartElev + 100)
                         {
                             LGear.ApplyAction("TriggerNow");
                             GearDown = true;
