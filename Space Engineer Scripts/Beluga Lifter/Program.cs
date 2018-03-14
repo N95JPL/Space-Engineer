@@ -18,7 +18,13 @@ namespace IngameScript
 {
     partial class Program : MyGridProgram
     {
-        //Varibles
+	//Commands
+		// Argument - Reset (Resets all ships Navigation data)
+		// Target:##### (Sets target Altitude in Meters - Default 10000m this does NOT reset with the Reset argument)
+		// Launch (Start launch)
+		// Abort (Aborts current mission and returns to base)
+	//Commands End
+    //Varibles
         const string Ship = "Booster2"; //Name of ship + " :", for best practise label all blocks (ShipName): (Block Name)
         const string gap = ": "; //DO NOT EDIT
         const string RC = (Ship + gap + "Remote Control"); //Name of Remote Controller
@@ -42,6 +48,9 @@ namespace IngameScript
         const string LAFailedMSG = (Ship + "Antenna not found with name " + LA + "!");
         bool LGFailed = false;
         const string LGFailedMSG = (Ship + "Landing Gear Group not found with name " + LA + "!");
+	//Varibles End
+		
+		//No touchy below - JPL
         Vector3D StartLocation;
         Vector3D GyroStartLocation;
         Vector3D Distance;
@@ -51,6 +60,12 @@ namespace IngameScript
         double StartElev;
         double RefDist;
         string CCarg;
+		IMyShipController RController;
+		IMyRemoteControl RControllers;
+		IMyGyro RGyro;
+		IMyLaserAntenna LAntenna;
+        IMyTimerBlock LGear;
+		var CCruise;
 
         public Program()
         {
@@ -60,29 +75,37 @@ namespace IngameScript
         public void Save()
         {
         }
-        public void Reset()
-        {
-
-        }
 
         public void Main(string arg)
         {
-            if (arg == "Prepare")
+            if (arg == "Reset")
             {
                 Status = "Not Ready";
             }
+			if (arg == "Abort")
+			{
+				Status = "Abort";
+			}
+			if (arg == "Launch" & LaunchReady)
+            {
+                Status = "Launching";
+			}
+			if (arg.Contains(("Target") == true;
+			{
+				var keyValuePairs = arg.Split('').Select(x => x.Split(':')).Where(x => x.Length == 2).ToDictionary(x => x.First(), x => x.Last());
+				TargetAltitude = keyValuePairs["Target"];
+			}
             Echo(Ship + " Control Pro");
-            IMyShipController RController;
+			
             RController = GridTerminalSystem.GetBlockWithName(RC) as IMyShipController;
             if (RController == null)
             {
-
                 Echo(RCFailedMSG);
                 RCFailed = true;
                 Status = "Failed";
                 return;
             }
-            IMyRemoteControl RControllers;
+			
             RControllers = GridTerminalSystem.GetBlockWithName(RC) as IMyRemoteControl;
             if (RControllers == null)
             {
@@ -91,7 +114,7 @@ namespace IngameScript
                 Status = "Failed";
                 return;
             }
-            var CCruise = GridTerminalSystem.GetBlockWithName(CC) as IMyProgrammableBlock;
+            CCruise = GridTerminalSystem.GetBlockWithName(CC) as IMyProgrammableBlock;
             if (CCruise == null)
             {
                 Echo(CCFailedMSG);
@@ -99,7 +122,7 @@ namespace IngameScript
                 Status = "Failed";
                 return;
             }
-            IMyGyro RGyro;
+
             RGyro = GridTerminalSystem.GetBlockWithName(Gyro) as IMyGyro;
             if (RGyro == null)
             {
@@ -108,7 +131,7 @@ namespace IngameScript
                 Status = "Failed";
                 return;
             }
-            IMyFunctionalBlock RGyros;
+
             RGyros = GridTerminalSystem.GetBlockWithName(Gyro) as IMyFunctionalBlock;
             if (RGyros == null)
             {
@@ -117,7 +140,7 @@ namespace IngameScript
                 Status = "Failed";
                 return;
             }
-            IMyLaserAntenna LAntenna;
+
             LAntenna = GridTerminalSystem.GetBlockWithName(LA) as IMyLaserAntenna;
             if (LAntenna == null)
             {
@@ -126,7 +149,7 @@ namespace IngameScript
                 Status = "Failed";
                 return;
             }
-            IMyTimerBlock LGear;
+
             LGear = GridTerminalSystem.GetBlockWithName(LG) as IMyTimerBlock;
             if (LGear == null)
             {
@@ -166,6 +189,7 @@ namespace IngameScript
                 var keyValuePairs = msg.Split(',').Select(x => x.Split(':')).Where(x => x.Length == 2).ToDictionary(x => x.First(), x => x.Last());
                 LAntenna.TransmitMessage(msg);
                 Status = "Failed";
+				return;
             }
             if (Status == "Not Ready") //Prepare GPS Waypoints for the Autopilot
             {
@@ -183,26 +207,25 @@ namespace IngameScript
                 string msg = ("Ship" + ":" + Ship + "," + "Status" + ":" + Status + "," + "Start Elevation" + ":" + StartElev + "," + "Start Position" + ":" + StartLocation + ",");
                 LAntenna.TransmitMessage(msg);
                 Status = "Ready";
+				return;
             }
             if (Status == "Ready")
             {
                 Echo(Status);
                 LaunchReady = true;
+				return;
             }
-            if (arg == "Launch")
-            {
-                Status = "Launching";
-                Echo(Status);
-                if (Status == "Launching")
+            if (Status == "Launching")
                 {
                     CCarg = "on";
                     if (CCruise.TryRun(CCarg))
                     {
                         Echo(Ship + " Cruise Activated!");
+						Status = "Launched";
                     }
                     return;
                 }
-                if (Status == "Launched")
+             if (Status == "Launched")
                 {
                     if (Elev >= StartElev + 20)
                     {
@@ -218,12 +241,22 @@ namespace IngameScript
                         CCarg = "off";
                         if (CCruise.TryRun(CCarg))
                         {
-                            Echo(Ship + " Launch Cruise Activated!");
+                            Echo(Ship + " Launch Cruise Deactivated!");
                         }
                         Status = "Seperation";
-                        return;
                     }
+				return;
                 }
+				if (Status == "Abort");
+                    {
+                        CCarg = "off";
+                        if (CCruise.TryRun(CCarg))
+                        {
+                            Echo(Ship + " Launch Cruise Deactivated!");
+                        }
+                        Status = "Prep Decent";
+                        return;
+					}
                 if (Status == "Seperation")
                 {
                     Echo(Status);
@@ -238,31 +271,38 @@ namespace IngameScript
                     RControllers.SetDockingMode(true);
                     RGyro.GyroOverride = true;
                     Status = "Desending";
-
+					return;
                 }
                 if (Status == "Desending")
                 {
-                    if (GearDown == false)
+                    if (!GearDown)
                     {
                         Echo(Status);
-                        if (Elev < StartElev + 100)
+                        if (Elev < StartElev + 50)
                         {
                             LGear.ApplyAction("TriggerNow");
                             GearDown = true;
                         }
                     }
-                    if (Elev <= StartElev + 20)
+                    if (Elev <= StartElev + 200)
                     {
                         Echo(Status);
                         RControllers.SetAutoPilotEnabled(false);
                         RControllers.SetCollisionAvoidance(false);
                         RControllers.SetDockingMode(false);
                         RGyro.GyroOverride = false;
-                        Status = "Landed";
+                        RControllers.ApplyAction("DampenersOverride", false);
                     }
+                    if (Elev = StartElev)
+                    {
+						Status = "Landed";
+					}
+				return;
                 }
-            }
-        }
+            }	
+
+		}
+		
     }
 
 }
