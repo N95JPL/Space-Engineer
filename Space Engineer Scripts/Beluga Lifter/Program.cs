@@ -295,13 +295,13 @@ namespace IngameScript
                     }
                     if (Elev = StartElev)
                     {
-						Status = "Landed";
-					}
-				return;
+			Status = "Landed";
+		    }
+ 		    return;
                 }
             }	
 
-		}
+	}
 		
     }
 
