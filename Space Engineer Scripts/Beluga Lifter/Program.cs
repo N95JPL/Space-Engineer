@@ -33,6 +33,9 @@ namespace IngameScript
         const string CC = (Ship + gap + "Cruise Pro");
         const string LG = (Ship + gap + "Landing Gear");
         const double TargetAltitude = 10000; // Meters
+	float minAngleRad = 0.01f; //Gyro angle accuracy
+	double CTRL_COEFF = 0.9; //Gyro power to use
+	
         //Script - No more editable functions
         string Status = "Not Ready";
         bool LaunchReady = false;
@@ -65,6 +68,7 @@ namespace IngameScript
 		IMyGyro RGyro;
 		IMyLaserAntenna LAntenna;
         IMyTimerBlock LGear;
+	Matrix or;
 		var CCruise;
 
         public Program()
@@ -198,10 +202,11 @@ namespace IngameScript
                 RControllers.SetAutoPilotEnabled(false);
                 StartLocation = RController.GetPosition();
                 RControllers.ClearWaypoints();
+		RGyro.Orientation.GetMatrix(out Startor);
                 GyroStartLocation = RGyro.GetPosition();
-                RefDist = Math.Round(Vector3D.Distance(GyroStartLocation, StartLocation),2);
-                Distance = ((GyroStartLocation - StartLocation) * (TargetAltitude/RefDist));
-                AppLocation = (StartLocation + Distance);
+                RefDist = Math.Round(Vector3D.Distance(GyroStartLocation, StartLocation),2); //Distance between RC and Gyro
+                Distance = ((GyroStartLocation - StartLocation) * (TargetAltitude/RefDist)); //Calculates Distance to Target
+                AppLocation = (StartLocation + Distance); ////Calculates Co-ords for Target
                 RControllers.AddWaypoint(AppLocation, (Ship + "Approach Location"));
                 RControllers.AddWaypoint(StartLocation, (Ship + "Landing Location"));
                 string msg = ("Ship" + ":" + Ship + "," + "Status" + ":" + Status + "," + "Start Elevation" + ":" + StartElev + "," + "Start Position" + ":" + StartLocation + ",");
@@ -292,6 +297,7 @@ namespace IngameScript
                         RControllers.SetDockingMode(false);
                         RGyro.GyroOverride = false;
                         RControllers.ApplyAction("DampenersOverride", false);
+			RunGyroMain(argument, "Forward");
                     }
                     if (Elev = StartElev)
                     {
@@ -302,6 +308,75 @@ namespace IngameScript
             }	
 
 	}
+	
+	bool GyroMain(string argument, Vector3D vDirection)
+        {
+            bool bAligned = true;
+            Vector3D down;
+            argument = argument.ToLower();
+            if (argument.Contains("rocket"))
+                down = Startor.Backward;
+            else if (argument.Contains("up"))
+                down = Startor.Up;
+            else if (argument.Contains("backward"))
+                down = Startor.Backward;
+            else if (argument.Contains("forward"))
+                down = Startor.Forward;
+            else
+                down = Startor.Down;
+
+            vDirection.Normalize();
+                var g = RGyro;
+                g.Orientation.GetMatrix(out or);
+
+                var localCurrent = Vector3D.Transform(down, MatrixD.Transpose(or));
+                var localTarget = Vector3D.Transform(vDirection, MatrixD.Transpose(g.WorldMatrix.GetOrientation())); 
+
+                //Since the gyro ui lies, we are not trying to control yaw,pitch,roll but rather we 
+                //need a rotation vector (axis around which to rotate) 
+                var rot = Vector3D.Cross(localCurrent, localTarget);
+                double dot2 = Vector3D.Dot(localCurrent, localTarget);
+                double ang = rot.Length();
+                ang = Math.Atan2(ang, Math.Sqrt(Math.Max(0.0, 1.0 - ang * ang)));
+                if (dot2 < 0) ang = Math.PI - ang; // compensate for >+/-90
+                if (ang < minAngleRad)
+                { // close enough 
+
+                    //g.SetValueBool("Override", false);
+                    g.GyroOverride = false;
+                    continue;
+                }
+
+                float yawMax = (float)(2 * Math.PI);
+
+                double ctrl_vel = yawMax * (ang / Math.PI) * CTRL_COEFF;
+
+                ctrl_vel = Math.Min(yawMax, ctrl_vel);
+                ctrl_vel = Math.Max(0.01, ctrl_vel);
+                rot.Normalize();
+                rot *= ctrl_vel;
+
+                float pitch = -(float)rot.X;
+                g.Pitch = pitch;
+
+                float yaw = -(float)rot.Y;
+                g.Yaw = yaw;
+                float roll = -(float)rot.Z;
+                g.Roll = roll;
+                g.GyroOverride = true;
+                bAligned = false;
+            return bAligned;
+	}
+	
+	void gyrosOff()
+        {
+            if (RGyro != null)
+            {
+                RGyro.GyroOverride = false;
+                RGyro.Enabled = true;
+            }
+         }
+
 		
     }
 
