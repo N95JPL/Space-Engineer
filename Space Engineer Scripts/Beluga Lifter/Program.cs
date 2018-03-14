@@ -49,10 +49,12 @@ namespace IngameScript
         Vector3D Position;
         double Elev;
         double StartElev;
+        double RefDist;
+        string CCarg;
 
         public Program()
         {
-            Runtime.UpdateFrequency = UpdateFrequency.Update10;
+            Runtime.UpdateFrequency = UpdateFrequency.Update1;
         }
 
         public void Save()
@@ -65,7 +67,7 @@ namespace IngameScript
 
         public void Main(string arg)
         {
-            if (arg == "ReadyUp")
+            if (arg == "Prepare")
             {
                 Status = "Not Ready";
             }
@@ -89,8 +91,7 @@ namespace IngameScript
                 Status = "Failed";
                 return;
             }
-            IMyProgrammableBlock CCruise;
-            CCruise = GridTerminalSystem.GetBlockWithName(CC) as IMyProgrammableBlock;
+            var CCruise = GridTerminalSystem.GetBlockWithName(CC) as IMyProgrammableBlock;
             if (CCruise == null)
             {
                 Echo(CCFailedMSG);
@@ -173,11 +174,9 @@ namespace IngameScript
                 RControllers.SetAutoPilotEnabled(false);
                 StartLocation = RController.GetPosition();
                 RControllers.ClearWaypoints();
-                //AppLocation.X = StartLocation.X + 500;
-                //AppLocation.Y = StartLocation.Y + 0; 
-                //AppLocation.Z = StartLocation.Z + 0;
                 GyroStartLocation = RGyro.GetPosition();
-                Distance = ((GyroStartLocation - StartLocation) * 83.333);
+                RefDist = Math.Round(Vector3D.Distance(GyroStartLocation, StartLocation),2);
+                Distance = ((GyroStartLocation - StartLocation) * (TargetAltitude/RefDist));
                 AppLocation = (StartLocation + Distance);
                 RControllers.AddWaypoint(AppLocation, (Ship + "Approach Location"));
                 RControllers.AddWaypoint(StartLocation, (Ship + "Landing Location"));
@@ -193,10 +192,14 @@ namespace IngameScript
             if (arg == "Launch")
             {
                 Status = "Launching";
+                Echo(Status);
                 if (Status == "Launching")
                 {
-                    CCruise.TryRun("on"); //Remove - Timer Replaced
-                    Echo(Status);
+                    CCarg = "on";
+                    if (CCruise.TryRun(CCarg))
+                    {
+                        Echo(Ship + " Cruise Activated!");
+                    }
                     return;
                 }
                 if (Status == "Launched")
@@ -209,10 +212,14 @@ namespace IngameScript
                            GearDown = false;
                         }
                     }
-                    if (Elev >= TargetAltitude)
+                    if (Elev >= (TargetAltitude-500))
                     {
                         TargetMet = true;
-                        CCruise.TryRun("off"); //Remove - Timer replaced and moving section
+                        CCarg = "off";
+                        if (CCruise.TryRun(CCarg))
+                        {
+                            Echo(Ship + " Launch Cruise Activated!");
+                        }
                         Status = "Seperation";
                         return;
                     }
@@ -230,7 +237,7 @@ namespace IngameScript
                     RControllers.SetCollisionAvoidance(false);
                     RControllers.SetDockingMode(true);
                     RGyro.GyroOverride = true;
-                    Status = “Desending”;
+                    Status = "Desending";
 
                 }
                 if (Status == "Desending")
