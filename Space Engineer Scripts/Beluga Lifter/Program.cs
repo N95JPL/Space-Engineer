@@ -29,6 +29,7 @@ namespace IngameScript
         const string gap = ": "; //DO NOT EDIT
         const string RC = (Ship + gap + "Remote Control"); //Name of Remote Controller
         const string Gyro = (Ship + gap + "Gyro"); //Name of Gyro
+        const string Cargo = (Ship + gap + "Cargo (Middle)"); //Name of Cargo Ref
         const string LA = (Ship + gap + "Laser Antenna"); //Name of Laser Antenna
         const string CC = (Ship + gap + "Cruise Pro");
         const string LG = (Ship + gap + "Landing Gear");
@@ -36,6 +37,7 @@ namespace IngameScript
         const string CCO = (Ship + gap + "Cruise (Off)");
         const string CCD = (Ship + gap + "Cruise (On_Down)");
         double TargetAltitude = 10000; // Meters
+        double AppTarget = 1000;//Meters
 
         //Script - No more editable functions
         string Status = "Not Ready";
@@ -49,6 +51,8 @@ namespace IngameScript
         const string CCFailedMSG = (Ship + "Computer not found with name " + CC + "!");
         bool GyroFailed = false;
         const string GyroFailedMSG = (Ship + "Gyro not found with name " + Gyro + "!");
+        bool RConFailed = false;
+        const string RConFailedMSG = (Ship + "Cargo Ref not found with name " + Cargo + "!");
         bool LAFailed = false;
         const string LAFailedMSG = (Ship + "Antenna not found with name " + LA + "!");
         bool LGFailed = false;
@@ -60,6 +64,7 @@ namespace IngameScript
         //No touchy below - JPL
         Vector3D StartLocation;
         Vector3D GyroStartLocation;
+        Vector3D RConStartLocation;
         Vector3D Distance;
         Vector3D AppLocation;
         Vector3D Position;
@@ -71,6 +76,7 @@ namespace IngameScript
         IMyRemoteControl RControllers;
         IMyGyro RGyro;
         IMyFunctionalBlock RGyros;
+        IMyCargoContainer RCon;
         IMyLaserAntenna LAntenna;
         IMyTimerBlock LGear;
         IMyTimerBlock CCUp;
@@ -94,7 +100,7 @@ namespace IngameScript
             }
             if (arg == "Abort")
             {
-                Status = "Abort";
+                Status = "Desend";
             }
             if (arg == "Launch")
             {
@@ -107,6 +113,10 @@ namespace IngameScript
                 var keyValuePairs = arg.Split(',').Select(x => x.Split(':')).Where(x => x.Length == 2).ToDictionary(x => x.First(), x => x.Last());
                 TargetAltitudeSetter = keyValuePairs["Target"];
                 TargetAltitude = double.Parse(TargetAltitudeSetter);
+            }
+            if (arg.Contains("Target Met"))
+            {
+                Status = "Prep Decent";
             }
 
             RController = GridTerminalSystem.GetBlockWithName(RC) as IMyShipController;
@@ -154,6 +164,15 @@ namespace IngameScript
                 return;
             }
 
+            RCon = GridTerminalSystem.GetBlockWithName(Cargo) as IMyCargoContainer;
+            if (RCon == null)
+            {
+                Echo(RConFailedMSG);
+                RConFailed = true;
+                Status = "Failed";
+                return;
+            }
+
             LAntenna = GridTerminalSystem.GetBlockWithName(LA) as IMyLaserAntenna;
             if (LAntenna == null)
             {
@@ -180,7 +199,7 @@ namespace IngameScript
                 Status = "Failed";
                 return;
             }
-            CCOff = GridTerminalSystem.GetBlockWithName(CCU) as IMyTimerBlock;
+            CCOff = GridTerminalSystem.GetBlockWithName(CCO) as IMyTimerBlock;
             if (CCOff == null)
             {
                 Echo(CCTsFailedMSG);
@@ -188,7 +207,7 @@ namespace IngameScript
                 Status = "Failed";
                 return;
             }
-            CCDown = GridTerminalSystem.GetBlockWithName(CCU) as IMyTimerBlock;
+            CCDown = GridTerminalSystem.GetBlockWithName(CCD) as IMyTimerBlock;
             if (CCDown == null)
             {
                 Echo(CCTsFailedMSG);
@@ -198,11 +217,13 @@ namespace IngameScript
             }
 
             RController.TryGetPlanetElevation(MyPlanetElevation.Surface, out Elev);
+            var velo = RController.GetShipVelocities();
             Position = RController.GetPosition();
             Echo(Ship + " Control Pro");
             string TarAl = TargetAltitude.ToString();
             Echo("Current Altitude: " + Elev);
             Echo("Target Altitude: " + TarAl);
+            //Echo("Speed: " + velo);
 
             if (Status == "Failed") //A componant has failed - Check Ship
             {
@@ -251,10 +272,15 @@ namespace IngameScript
                 StartLocation = RController.GetPosition();
                 RControllers.ClearWaypoints();
                 GyroStartLocation = RGyro.GetPosition();
+                RConStartLocation = RCon.GetPosition();
                 RefDist = Math.Round(Vector3D.Distance(GyroStartLocation, StartLocation), 2); //Distance between RC and Gyro
                 Distance = ((GyroStartLocation - StartLocation) * (TargetAltitude / RefDist)); //Calculates Distance to Target
                 AppLocation = (StartLocation + Distance); ////Calculates Co-ords for Target
-                //RControllers.AddWaypoint(AppLocation, (Ship + "Approach Location"));
+                RControllers.AddWaypoint(AppLocation, (Ship + "Target Location"));
+                RefDist = Math.Round(Vector3D.Distance(RConStartLocation, StartLocation), 2); //Distance between RC and Gyro
+                Distance = ((RConStartLocation - StartLocation) * (AppTarget / RefDist)); //Calculates Distance to Approach
+                AppLocation = (StartLocation + Distance); ////Calculates Co-ords for Target
+                RControllers.AddWaypoint(AppLocation, (Ship + "Approach Location"));
                 RControllers.AddWaypoint(StartLocation, (Ship + "Landing Location"));
                 string msg = ("Ship" + ":" + Ship + "," + "Status" + ":" + Status + "," + "Start Elevation" + ":" + StartElev + "," + "Start Position" + ":" + StartLocation + ",");
                 LAntenna.TransmitMessage(msg);
@@ -271,7 +297,9 @@ namespace IngameScript
             {
                 Echo("Attempting Launch Script");
                 CCUp.ApplyAction("TriggerNow");
+                RController.DampenersOverride = true;
                 Echo("Cruise Control activated1");
+                Status = "Launched";
                 return;
             }
             if (Status == "Launched")
@@ -286,11 +314,14 @@ namespace IngameScript
                         return;
                     }
                 }
-                if (Elev >= (TargetAltitude))
+                if (Elev >= (TargetAltitude - 1000))
                 {
                     TargetMet = true;
                     CCOff.ApplyAction("TriggerNow");
                     Echo(Ship + " Launch Cruise Deactivated!");
+                    RControllers.SetAutoPilotEnabled(true);
+                    RControllers.SetCollisionAvoidance(false);
+                    RControllers.SetDockingMode(false);
                     Status = "Seperation";
                     return;
                 }
@@ -309,16 +340,16 @@ namespace IngameScript
 
             if (Status == "Seperation")
             {
-                Echo(Status);
-                Status = "Prep Decent";
+                Echo(Status + ": Waiting for RC to reach target");
                 return;
             }
-            if (Status == "Prep Decent")
+            if (Status == "Desend")
             {
                 Echo(Status);
-                RControllers.SetAutoPilotEnabled(true);
+                RController.DampenersOverride = false;
+                RControllers.SetAutoPilotEnabled(false);
                 RControllers.SetCollisionAvoidance(false);
-                RControllers.SetDockingMode(true);
+                RControllers.SetDockingMode(false);
                 CCDown.ApplyAction("TriggerNow");
                 Status = "Desending";
                 return;
@@ -328,30 +359,28 @@ namespace IngameScript
                 if (!GearDown)
                 {
                     Echo(Status);
-                    if (Elev < StartElev + 1000)
+                    if (Elev < StartElev + 2000)
                     {
                         CCOff.ApplyAction("TriggerNow");
+                        RControllers.SetAutoPilotEnabled(true);
+                        RControllers.SetCollisionAvoidance(false);
+                        RControllers.SetDockingMode(false);
+                        RController.DampenersOverride = true;
                         return;
                     }
-                    if (Elev < StartElev + 50)
+                    if (Elev < StartElev + 100)
                     {
                         LGear.ApplyAction("TriggerNow");
                         GearDown = true;
                         return;
                     }
                 }
-                if (Elev <= StartElev + 200)
+                if (Elev == StartElev + 1)
                 {
-                    Echo(Status);
                     RControllers.SetAutoPilotEnabled(false);
                     RControllers.SetCollisionAvoidance(false);
                     RControllers.SetDockingMode(false);
-                    RGyro.GyroOverride = false;
-                    RController.ApplyAction("DampenersOverride");
-                    return;
-                }
-                if (Elev == StartElev)
-                {
+                    RController.DampenersOverride = false;
                     Status = "Landed";
                     return;
                 }
