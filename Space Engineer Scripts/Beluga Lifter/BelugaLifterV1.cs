@@ -1,4 +1,4 @@
-using Sandbox.Game.EntityComponents;
+﻿using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI.Ingame;
 using Sandbox.ModAPI.Interfaces;
 using SpaceEngineers.Game.ModAPI.Ingame;
@@ -44,7 +44,10 @@ namespace IngameScript
         bool LaunchReady = false;
         bool TargetMet = false;
         bool RCFailed = false;
+        bool AutoEnable;
         bool GearDown = true;
+        bool Init;
+        double velo;
         string TargetAltitudeSetter;
         const string RCFailedMSG = (Ship + "Controller not found with name " + RC + "!");
         bool CCFailed = false;
@@ -67,6 +70,7 @@ namespace IngameScript
         Vector3D RConStartLocation;
         Vector3D Distance;
         Vector3D AppLocation;
+        Vector3D TargetLocation;
         Vector3D Position;
         double Elev;
         double StartElev;
@@ -94,31 +98,6 @@ namespace IngameScript
 
         public void Main(string arg)
         {
-            if (arg == "Reset")
-            {
-                Status = "Not Ready";
-            }
-            if (arg == "Abort")
-            {
-                Status = "Desend";
-            }
-            if (arg == "Launch")
-            {
-                Status = "Launching";
-                Echo("Launch commanded");
-                return;
-            }
-            if (arg.Contains("Target"))
-            {
-                var keyValuePairs = arg.Split(',').Select(x => x.Split(':')).Where(x => x.Length == 2).ToDictionary(x => x.First(), x => x.Last());
-                TargetAltitudeSetter = keyValuePairs["Target"];
-                TargetAltitude = double.Parse(TargetAltitudeSetter);
-            }
-            if (arg.Contains("Target Met"))
-            {
-                Status = "Prep Decent";
-            }
-
             RController = GridTerminalSystem.GetBlockWithName(RC) as IMyShipController;
             if (RController == null)
             {
@@ -215,16 +194,19 @@ namespace IngameScript
                 Status = "Failed";
                 return;
             }
-
+            AutoEnable = RControllers.IsAutoPilotEnabled;
             RController.TryGetPlanetElevation(MyPlanetElevation.Surface, out Elev);
-            var velo = RController.GetShipVelocities();
-            Position = RController.GetPosition();
-            Echo(Ship + " Control Pro");
             string TarAl = TargetAltitude.ToString();
-            Echo("Current Altitude: " + Elev);
-            Echo("Target Altitude: " + TarAl);
-            //Echo("Speed: " + velo);
+            velo = RController.GetShipSpeed();
+            Position = RController.GetPosition();
 
+            Echo(Ship + " Control Pro");
+            Echo("Status: " + Status);
+            Echo("Current Altitude: " + Math.Round(Elev, 2));
+            Echo("Target Altitude: " + TargetAltitude);
+            Echo("Current Speed: " + Math.Round(velo, 2));
+
+            //Args for status events
             if (Status == "Failed") //A componant has failed - Check Ship
             {
                 if (RCFailed == true)
@@ -264,132 +246,215 @@ namespace IngameScript
                 Status = "Failed";
                 return;
             }
-            if (Status == "Not Ready") //Prepare GPS Waypoints for the Autopilot
+
+            if (!Init)
             {
-                Echo(Status);
-                StartElev = Elev;
-                RControllers.SetAutoPilotEnabled(false);
-                RControllers.FlightMode.Equals("One-Way");
-                StartLocation = RController.GetPosition();
-                RControllers.ClearWaypoints();
-                RControllers.FlightMode:OneWay;
-                GyroStartLocation = RGyro.GetPosition();
-                RConStartLocation = RCon.GetPosition();
-                RefDist = Math.Round(Vector3D.Distance(GyroStartLocation, StartLocation), 2); //Distance between RC and Gyro
-                Distance = ((GyroStartLocation - StartLocation) * (TargetAltitude / RefDist)); //Calculates Distance to Target
-                AppLocation = (StartLocation + Distance); ////Calculates Co-ords for Target
-                RControllers.AddWaypoint(AppLocation, (Ship + "Target Location"));
-                RefDist = Math.Round(Vector3D.Distance(RConStartLocation, StartLocation), 2); //Distance between RC and Gyro
-                Distance = ((RConStartLocation - StartLocation) * (AppTarget / RefDist)); //Calculates Distance to Approach
-                AppLocation = (StartLocation + Distance); ////Calculates Co-ords for Target
-                RControllers.AddWaypoint(AppLocation, (Ship + "Approach Location"));
-                RControllers.AddWaypoint(StartLocation, (Ship + "Landing Location"));
-                string msg = ("Ship" + ":" + Ship + "," + "Status" + ":" + Status + "," + "Start Elevation" + ":" + StartElev + "," + "Start Position" + ":" + StartLocation + ",");
-                LAntenna.TransmitMessage(msg);
+                Status = "Initalizing...";
+                NotReady();
+            }
+            if (arg.Contains("Target"))
+            {
+                var keyValuePairs = arg.Split(',').Select(x => x.Split(':')).Where(x => x.Length == 2).ToDictionary(x => x.First(), x => x.Last());
+                TargetAltitudeSetter = keyValuePairs["Target"];
+                TargetAltitude = double.Parse(TargetAltitudeSetter);
+                NotReady();
+            }
+            if (arg == "Reset")
+            {
+                Status = "Not Ready";
+                NotReady();
+            }
+            if (arg == "Ready")
+            {
                 Status = "Ready";
-                return;
+                Ready();
             }
-            if (Status == "Ready")
+            if (arg == "Launch")
             {
-                Echo(Status);
-                LaunchReady = true;
-                return;
+                Status = "Launching";
+                Launch();
             }
+            if (arg == "Launched")
+            {
+                Status = "Launched";
+                Climb();
+            }
+            if (arg == "Seperate")
+            {
+                Status = "Seperation";
+                Seperation();
+            }
+            if (arg == "Return")
+            {
+                Status = "Return";
+                Return();
+            }
+            if (arg == "Approach")
+            {
+                Status = "Approaching";
+                Approach();
+            }
+            if (arg == "Land")
+            {
+                Status = "Landing";
+                Land();
+            }
+            if (arg == "Landed")
+            {
+                Status = "Landed";
+            }
+
             if (Status == "Launching")
             {
-                Echo("Attempting Launch Script");
-                CCUp.ApplyAction("TriggerNow");
-                RController.DampenersOverride = true;
-                Echo("Cruise Control activated1");
-                Status = "Launched";
-                return;
+                Launch();
             }
             if (Status == "Launched")
             {
-                Echo(Status);
-                if (Elev >= StartElev + 20)
-                {
-                    if (GearDown == true)
-                    {
-                        LGear.ApplyAction("TriggerNow");
-                        GearDown = false;
-                        return;
-                    }
-                }
-                if (Elev >= (TargetAltitude - 1000))
-                {
-                    TargetMet = true;
-                    CCOff.ApplyAction("TriggerNow");
-                    Echo(Ship + " Launch Cruise Deactivated!");
-                    RControllers.SetAutoPilotEnabled(true);
-                    RControllers.SetCollisionAvoidance(false);
-                    RControllers.SetDockingMode(false);
-                    Status = "Seperation";
-                    return;
-                }
+                Climb();
             }
-            if (Status == "Abort")
-            {
-                CCarg = "off";
-                if (CCruise.TryRun(CCarg))
-                {
-                    Echo(Ship + " Launch Cruise Deactivated!");
-                    return;
-                }
-                Status = "Prep Decent";
-                return;
-            }
-
             if (Status == "Seperation")
             {
-                Echo(Status + ": Waiting for RC to reach target");
-                return;
+                Seperation();
             }
-            if (Status == "Desend")
+            if (Status == "Return")
             {
-                Echo(Status);
-                RController.DampenersOverride = false;
-                RControllers.SetAutoPilotEnabled(false);
-                RControllers.SetCollisionAvoidance(false);
-                RControllers.SetDockingMode(false);
-                CCDown.ApplyAction("TriggerNow");
-                Status = "Desending";
-                return;
+                Return();
             }
-            if (Status == "Desending")
+            if (Status == "Approaching")
             {
-                Echo(Status);
-                if (!GearDown)
+                Approach();
+            }
+            if (Status == "Landing")
+            {
+                Land();
+            }
+            if (Status == "Landed")
+            {
+                Status = "Landed";
+            }
+
+        }
+
+        public void NotReady()
+        {
+            StartElev = Elev;
+            RControllers.SetAutoPilotEnabled(false);
+            RControllers.FlightMode = FlightMode.OneWay;
+            StartLocation = RController.GetPosition();
+            RControllers.ClearWaypoints();
+            GyroStartLocation = RGyro.GetPosition();
+            RConStartLocation = RCon.GetPosition();
+            RefDist = Math.Round(Vector3D.Distance(GyroStartLocation, StartLocation), 2); //Distance between RC and Gyro
+            Distance = ((GyroStartLocation - StartLocation) * ((TargetAltitude - StartElev) / RefDist)); //Calculates Distance to Target
+            TargetLocation = (StartLocation + Distance); ////Calculates Co-ords for Target
+            RefDist = Math.Round(Vector3D.Distance(RConStartLocation, StartLocation), 2); //Distance between RC and Gyro
+            Distance = ((RConStartLocation - StartLocation) * ((AppTarget - StartElev) / RefDist)); //Calculates Distance to Approach (1000m)
+            AppLocation = (StartLocation + Distance); ////Calculates Co-ords for Target
+            RControllers.AddWaypoint(TargetLocation, (Ship + "Target Location"));
+            Init = true;
+            Main("Ready");
+            return;
+        }
+
+        public void Ready()
+        {
+            LaunchReady = true;
+            return;
+        }
+
+        public void Launch()
+        {
+            CCUp.ApplyAction("TriggerNow");
+            RController.DampenersOverride = true;
+            RController.TryGetPlanetElevation(MyPlanetElevation.Surface, out Elev);
+            if (Elev >= (StartElev + 20))
+            {
+                if (GearDown == true)
                 {
-                    if (Elev < StartElev + 2000)
-                    {
-                        CCOff.ApplyAction("TriggerNow");
-                        RControllers.SetAutoPilotEnabled(true);
-                        RControllers.SetCollisionAvoidance(false);
-                        RControllers.SetDockingMode(false);
-                        RController.DampenersOverride = true;
-                        
-                        return;
-                    }
-                    if (Elev < StartElev + 100)
-                    {
-                        LGear.ApplyAction("TriggerNow");
-                        GearDown = true;
-                        return;
-                    }
-                }
-                if (Elev == StartElev + 1)
-                {
-                    RControllers.SetAutoPilotEnabled(false);
-                    RControllers.SetCollisionAvoidance(false);
-                    RControllers.SetDockingMode(false);
-                    RController.DampenersOverride = false;
-                    Status = "Landed";
-                    return;
+                    LGear.ApplyAction("TriggerNow");
+                    GearDown = false;
+                    Main("Launched");
                 }
             }
         }
 
+        public void Climb()
+        {
+            RController.TryGetPlanetElevation(MyPlanetElevation.Surface, out Elev);
+            if (Elev >= (TargetAltitude - 500))
+            {
+                TargetMet = true;
+                CCOff.ApplyAction("TriggerNow");
+                Echo(Ship + " Launch Cruise Deactivated!");
+                RControllers.SetAutoPilotEnabled(true);
+                RControllers.SetCollisionAvoidance(false);
+                RControllers.SetDockingMode(true);
+                Main("Seperate");
+                return;
+            }
+        }
+
+        public void Seperation()
+        {
+            Echo("Waiting for RC to reach target");
+            velo = RController.GetShipSpeed();
+            if (!AutoEnable && (velo < 0.5))
+            {
+                Main("Return");
+            }
+            return;
+        }
+
+        public void Return()
+        {
+            RController.TryGetPlanetElevation(MyPlanetElevation.Surface, out Elev);
+            if (Elev > (StartElev + 2000))
+            {
+                RControllers.SetAutoPilotEnabled(false);
+                RController.DampenersOverride = false;
+            }
+            if (Elev < (StartElev + 2000))
+            {
+                if (!AutoEnable)
+                {
+                    RController.DampenersOverride = true;
+                    RControllers.ClearWaypoints();
+                    RControllers.AddWaypoint(AppLocation, (Ship + "Approach Location"));
+                    RControllers.AddWaypoint(StartLocation, (Ship + "Start Location"));
+                    RControllers.SetAutoPilotEnabled(true);
+                    RControllers.SetCollisionAvoidance(false);
+                    RControllers.SetDockingMode(true);
+                    Main("Approach");
+                }
+            }
+        }
+
+        public void Approach()
+        {
+            RController.TryGetPlanetElevation(MyPlanetElevation.Surface, out Elev);
+            if (!GearDown)
+            {
+                if (!GearDown && (Elev < (StartElev + 100)))
+                {
+                    LGear.ApplyAction("TriggerNow");
+                    GearDown = true;
+                    Main("Land");
+                }
+            }
+        }
+
+        public void Land()
+        {
+            RController.TryGetPlanetElevation(MyPlanetElevation.Surface, out Elev);
+            if (!AutoEnable)
+            {
+                RControllers.SetAutoPilotEnabled(false);
+                RControllers.SetCollisionAvoidance(false);
+                RControllers.SetDockingMode(false);
+                RController.DampenersOverride = false;
+                Main("Landed");
+            }
+        }
     }
 
 }
