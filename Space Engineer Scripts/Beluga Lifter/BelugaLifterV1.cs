@@ -37,17 +37,11 @@ namespace IngameScript
         const string CCO = (Ship + gap + "Cruise (Off)");
         const string CCD = (Ship + gap + "Cruise (On_Down)");
         double TargetAltitude = 10000; // Meters
-        double AppTarget = 1000;//Meters
+        double AppTarget = 200;//Meters
+        //Varibles End
 
-        //Script - No more editable functions
+        //No touchy below - JPL
         string Status = "Not Ready";
-        bool LaunchReady = false;
-        bool TargetMet = false;
-        bool RCFailed = false;
-        bool AutoEnable;
-        bool GearDown = true;
-        bool Init;
-        double velo;
         string TargetAltitudeSetter;
         const string RCFailedMSG = (Ship + "Controller not found with name " + RC + "!");
         bool CCFailed = false;
@@ -62,9 +56,10 @@ namespace IngameScript
         const string LGFailedMSG = (Ship + "Landing Gear Group not found with name " + LA + "!");
         bool CCTsFailed = false;
         const string CCTsFailedMSG = (Ship + "A Cruise timer block is missing!");
-        //Varibles End
-
-        //No touchy below - JPL
+        bool RCFailed = false;
+        bool AutoEnable;
+        bool GearDown = true;
+        bool Init;
         Vector3D StartLocation;
         Vector3D GyroStartLocation;
         Vector3D RConStartLocation;
@@ -75,7 +70,7 @@ namespace IngameScript
         double Elev;
         double StartElev;
         double RefDist;
-        string CCarg;
+        double velo;
         IMyShipController RController;
         IMyRemoteControl RControllers;
         IMyGyro RGyro;
@@ -206,39 +201,14 @@ namespace IngameScript
             Echo("Target Altitude: " + TargetAltitude);
             Echo("Current Speed: " + Math.Round(velo, 2));
 
-            //Args for status events
-            if (Status == "Failed") //A componant has failed - Check Ship
+            if (Status == "Failed")
             {
-                if (RCFailed == true)
-                {
-                    Echo(RCFailedMSG);
-                    return;
-                }
-                if (CCFailed == true)
-                {
-                    Echo(CCFailedMSG);
-                    return;
-                }
-                if (GyroFailed == true)
-                {
-                    Echo(GyroFailedMSG);
-                    return;
-                }
-                if (LAFailed == true)
-                {
-                    Echo(LAFailedMSG);
-                    return;
-                }
-                if (LGFailed == true)
-                {
-                    Echo(LGFailedMSG);
-                    return;
-                }
-                if (CCTsFailed == true)
-                {
-                    Echo(CCTsFailedMSG);
-                    return;
-                }
+                if (RCFailed == true){Echo(RCFailedMSG);return;}
+                if (CCFailed == true){Echo(CCFailedMSG);return;}
+                if (GyroFailed == true){Echo(GyroFailedMSG);return;}
+                if (LAFailed == true){Echo(LAFailedMSG);return;}
+                if (LGFailed == true){Echo(LGFailedMSG);return;}
+                if (CCTsFailed == true){Echo(CCTsFailedMSG);return;}
                 Echo(Status);
                 string msg = ("Ship" + ":" + Ship + "," + "Status" + ":" + Status + "," + "Elevation" + ":" + Elev + "," + "Position" + ":" + Position + ",");
                 var keyValuePairs = msg.Split(',').Select(x => x.Split(':')).Where(x => x.Length == 2).ToDictionary(x => x.First(), x => x.Last());
@@ -247,11 +217,7 @@ namespace IngameScript
                 return;
             }
 
-            if (!Init)
-            {
-                Status = "Initalizing...";
-                NotReady();
-            }
+            if (!Init){Status = "Initalizing...";NotReady();}
             if (arg.Contains("Target"))
             {
                 var keyValuePairs = arg.Split(',').Select(x => x.Split(':')).Where(x => x.Length == 2).ToDictionary(x => x.First(), x => x.Last());
@@ -259,80 +225,23 @@ namespace IngameScript
                 TargetAltitude = double.Parse(TargetAltitudeSetter);
                 NotReady();
             }
-            if (arg == "Reset")
-            {
-                Status = "Not Ready";
-                NotReady();
-            }
-            if (arg == "Ready")
-            {
-                Status = "Ready";
-                Ready();
-            }
-            if (arg == "Launch")
-            {
-                Status = "Launching";
-                Launch();
-            }
-            if (arg == "Launched")
-            {
-                Status = "Launched";
-                Climb();
-            }
-            if (arg == "Seperate")
-            {
-                Status = "Seperation";
-                Seperation();
-            }
-            if (arg == "Return")
-            {
-                Status = "Return";
-                Return();
-            }
-            if (arg == "Approach")
-            {
-                Status = "Approaching";
-                Approach();
-            }
-            if (arg == "Land")
-            {
-                Status = "Landing";
-                Land();
-            }
-            if (arg == "Landed")
-            {
-                Status = "Landed";
-            }
+            if (arg == "Reset"){Status = "Not Ready";NotReady();}
+            if (arg == "Ready"){Status = "Ready";Ready();}
+            if (arg == "Launch"){Status = "Launching";Launch();}
+            if (arg == "Launched"){Status = "Launched";Climb();}
+            if (arg == "Seperate"){Status = "Seperation";Seperation();}
+            if (arg == "Return"){Status = "Return";Return();}
+            if (arg == "Approach"){Status = "Approaching";Approach();}
+            if (arg == "Land"){Status = "Landing";Land();}
+            if (arg == "Landed"){Status = "Landed";}
 
-            if (Status == "Launching")
-            {
-                Launch();
-            }
-            if (Status == "Launched")
-            {
-                Climb();
-            }
-            if (Status == "Seperation")
-            {
-                Seperation();
-            }
-            if (Status == "Return")
-            {
-                Return();
-            }
-            if (Status == "Approaching")
-            {
-                Approach();
-            }
-            if (Status == "Landing")
-            {
-                Land();
-            }
-            if (Status == "Landed")
-            {
-                Status = "Landed";
-            }
-
+            if (Status == "Launching"){Launch();}
+            if (Status == "Launched"){Climb();}
+            if (Status == "Seperation"){Seperation();}
+            if (Status == "Return"){Return();}
+            if (Status == "Approaching"){Approach();}
+            if (Status == "Landing"){Land();}
+            if (Status == "Landed"){Status = "Landed";}
         }
 
         public void NotReady()
@@ -348,7 +257,7 @@ namespace IngameScript
             Distance = ((GyroStartLocation - StartLocation) * ((TargetAltitude - StartElev) / RefDist)); //Calculates Distance to Target
             TargetLocation = (StartLocation + Distance); ////Calculates Co-ords for Target
             RefDist = Math.Round(Vector3D.Distance(RConStartLocation, StartLocation), 2); //Distance between RC and Gyro
-            Distance = ((RConStartLocation - StartLocation) * ((AppTarget - StartElev) / RefDist)); //Calculates Distance to Approach (1000m)
+            Distance = ((RConStartLocation - StartLocation) * ((AppTarget + StartElev) / RefDist)); //Calculates Distance to Approach (1000m)
             AppLocation = (StartLocation + Distance); ////Calculates Co-ords for Target
             RControllers.AddWaypoint(TargetLocation, (Ship + "Target Location"));
             Init = true;
@@ -358,7 +267,7 @@ namespace IngameScript
 
         public void Ready()
         {
-            LaunchReady = true;
+            Echo("Awaiting Launch command!");
             return;
         }
 
@@ -380,18 +289,17 @@ namespace IngameScript
 
         public void Climb()
         {
-            RController.TryGetPlanetElevation(MyPlanetElevation.Surface, out Elev);
-            if (Elev >= (TargetAltitude - 500))
-            {
-                TargetMet = true;
-                CCOff.ApplyAction("TriggerNow");
-                Echo(Ship + " Launch Cruise Deactivated!");
-                RControllers.SetAutoPilotEnabled(true);
-                RControllers.SetCollisionAvoidance(false);
-                RControllers.SetDockingMode(true);
-                Main("Seperate");
-                return;
-            }
+                RController.TryGetPlanetElevation(MyPlanetElevation.Surface, out Elev);
+                if (Elev >= (TargetAltitude - 500))
+                {
+                    CCOff.ApplyAction("TriggerNow");
+                    Echo(Ship + " Launch Cruise Deactivated!");
+                    RControllers.SetAutoPilotEnabled(true);
+                    RControllers.SetCollisionAvoidance(false);
+                    RControllers.SetDockingMode(true);
+                    Main("Seperate");
+                    return;
+                }
         }
 
         public void Seperation()
@@ -434,7 +342,7 @@ namespace IngameScript
             RController.TryGetPlanetElevation(MyPlanetElevation.Surface, out Elev);
             if (!GearDown)
             {
-                if (!GearDown && (Elev < (StartElev + 100)))
+                if (!GearDown && (Elev < (StartElev + 50)))
                 {
                     LGear.ApplyAction("TriggerNow");
                     GearDown = true;
