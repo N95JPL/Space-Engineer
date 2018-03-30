@@ -1,9 +1,9 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8" ?>
 <!-- DO NOT DELETE THIS FILE.-->
 <!-- MDK is using this file to identify this project as an MDK project. -->
 <mdk version="1.0.14">
   <gamebinpath enabled="no">D:\SteamLibrary\SteamApps\common\SpaceEngineers\Bin64</gamebinpath>
-  <installpath>C:\Users\joshu\AppData\Local\Microsoft\VisualStudio\15.0_26f2aebf\Extensions\3vkmkrzn.ykr</installpath>
+  <installpath>C:\Users\joshu\AppData\Local\Microsoft\VisualStudio\15.0_cd370965\Extensions\yzk41qql.rgs</installpath>
   <outputpath>C:\Users\joshu\AppData\Roaming\SpaceEngineers\IngameScripts\local</outputpath>
   <minify>yes</minify>
   <ignore>

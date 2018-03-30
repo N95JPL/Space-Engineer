@@ -65,6 +65,7 @@ namespace IngameScript
         bool AutoEnable;
         bool GearDown = true;
         bool Init;
+        bool CruiseCon = false;
         Vector3D StartLocation;
         Vector3D GyroStartLocation;
         Vector3D RConStartLocation;
@@ -80,13 +81,11 @@ namespace IngameScript
         double RefDist;
         double velo;
         double TotalMass;
-        double NewtonMass;
         double Gravity;
         double GravityG;
         double thrustSumUP;
         double thrustSumDOWN;
         double stopDistance;
-        double TargetAlt;
         double TargetGravity;
         double Accel;
         double AccelTime;
@@ -257,10 +256,10 @@ namespace IngameScript
             Echo("Speed: " + Math.Round(velo, 2));
             Echo("Total Weight: " + TotalMass);
             Echo("Gravity: " + Math.Round(GravityG,2) + "G");
-            Echo(thrustSumDOWN.ToString());
-            Echo(thrustersDOWN.Count.ToString());
-            Echo(thrustSumUP.ToString());
-            Echo(thrustersUP.Count.ToString());
+            //Echo(thrustSumDOWN.ToString());
+            //Echo(thrustersDOWN.Count.ToString());
+            //Echo(thrustSumUP.ToString());
+            //Echo(thrustersUP.Count.ToString());
 
             if (Status == "Failed")
             {
@@ -342,6 +341,7 @@ namespace IngameScript
         public void Launch()
         {
             CCUp.ApplyAction("TriggerNow");
+            CruiseCon = true;
             RController.DampenersOverride = true;
             if (Elev >= (StartElev + 20))
             {
@@ -362,38 +362,9 @@ namespace IngameScript
             Echo("Stop Distance: " + stopDistance.ToString() + "m");
             if (Elev >= (TargetAltitude - stopDistance))
             {
-                foreach (var thruster in thrustersUP)
-                {
-                    thruster.ThrustOverridePercentage = 1f;
-                }
-                foreach (var thruster in thrustersDOWN)
-                {
-                    thruster.ThrustOverridePercentage = 0;
-                }
-            }
-            if (Elev < (TargetAltitude - stopDistance))
-            {
-                foreach (var thruster in thrustersDOWN)
-                {
-                    thruster.ThrustOverridePercentage = 1f;
-                }
-                foreach (var thruster in thrustersUP)
-                {
-                    thruster.ThrustOverridePercentage = 0;
-                }
-            }
-            
-            if (Elev >= (TargetAltitude - 200))
-            {
+                CCOff.ApplyAction("TriggerNow");
+                CruiseCon = false;
                 RController.DampenersOverride = true;
-                foreach (var thruster in thrustersUP)
-                {
-                    thruster.ThrustOverridePercentage = 0;
-                }
-                foreach (var thruster in thrustersDOWN)
-                {
-                    thruster.ThrustOverridePercentage = 0;
-                }
                 RControllers.SetAutoPilotEnabled(true);
                 RControllers.SetCollisionAvoidance(false);
                 RControllers.SetDockingMode(true);
@@ -418,29 +389,9 @@ namespace IngameScript
             Echo("Accel Force: " + Accel.ToString());
             Echo("Accel Time: " + AccelTime.ToString());
             Echo("Stop Distance: " + stopDistance.ToString());
-            if (Elev > (StartElev + 200 + stopDistance))
+            RController.DampenersOverride = false;
+            if (Elev < (StartElev + AppTarget + stopDistance))
             {
-                RControllers.SetAutoPilotEnabled(false);
-                RController.DampenersOverride = false;
-                foreach (var thruster in thrustersDOWN)
-                {
-                    thruster.ThrustOverridePercentage = 0;
-                }
-            }
-            else
-            {
-                RController.DampenersOverride = false;
-                foreach (var thruster in thrustersDOWN)
-                {
-                    thruster.ThrustOverridePercentage = 1f;
-                }
-            }
-            if (Elev < (StartElev + 200))
-            {
-                foreach (var thruster in thrustersDOWN)
-                {
-                    thruster.ThrustOverridePercentage = 0;
-                }
                 if (!AutoEnable)
                 {
                     RController.DampenersOverride = true;
@@ -457,22 +408,19 @@ namespace IngameScript
 
         public void Approach()
         {
-            if (!GearDown)
+            if (!AutoEnable)
             {
-                if (!AutoEnable)
-                {
-                    RControllers.AddWaypoint(StartLocation, (Ship + "Start Location"));
-                    RControllers.Direction = Base6Directions.Direction.Forward;
-                    RControllers.SetAutoPilotEnabled(true);
-                    RControllers.SetCollisionAvoidance(false);
-                    RControllers.SetDockingMode(true);
-                }
-                if (!GearDown && (Elev < (StartElev + 50)))
-                {
-                    LGear.ApplyAction("TriggerNow");
-                    GearDown = true;
-                    Main("Land");
-                }
+                RControllers.AddWaypoint(StartLocation, (Ship + "Landing Location"));
+                RControllers.Direction = Base6Directions.Direction.Forward;
+                RControllers.SetAutoPilotEnabled(true);
+                RControllers.SetCollisionAvoidance(false);
+                RControllers.SetDockingMode(true);
+            }
+            if (!GearDown && (Elev < (StartElev + 50)))
+            {
+                LGear.ApplyAction("TriggerNow");
+                GearDown = true;
+                Main("Land");
             }
         }
 
