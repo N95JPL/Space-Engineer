@@ -256,6 +256,9 @@ namespace IngameScript
             Echo("Speed: " + Math.Round(velo, 2));
             Echo("Total Weight: " + TotalMass);
             Echo("Gravity: " + Math.Round(GravityG,2) + "G");
+            string msg = ("Ship" + ":" + Ship + "," + "Status" + ":" + Status + "," + "Elevation" + ":" + Elev + "," + "Position" + ":" + Position + "," + "Speed" + ":" + velo + "," + "Target" + ":" + TargetAltitude + ",");
+            LAntenna.TransmitMessage(msg);
+            var keyValuePairs = arg.Split(',').Select(x => x.Split(':')).Where(x => x.Length == 2).ToDictionary(x => x.First(), x => x.Last());
             //Echo(thrustSumDOWN.ToString());
             //Echo(thrustersDOWN.Count.ToString());
             //Echo(thrustSumUP.ToString());
@@ -270,17 +273,12 @@ namespace IngameScript
                 if (LGFailed == true){Echo(LGFailedMSG);return;}
                 if (RConFailed == true) { Echo(RConFailedMSG); return; }
                 if (CCTsFailed == true){Echo(CCTsFailedMSG);return;}
-                Echo(Status);
-                string msg = ("Ship" + ":" + Ship + "," + "Status" + ":" + Status + "," + "Elevation" + ":" + Elev + "," + "Position" + ":" + Position + ",");
-                var keyValuePairs = msg.Split(',').Select(x => x.Split(':')).Where(x => x.Length == 2).ToDictionary(x => x.First(), x => x.Last());
-                LAntenna.TransmitMessage(msg);
                 Status = "Failed";
                 return;
             }
 
             if (arg.Contains("Target"))
             {
-                var keyValuePairs = arg.Split(',').Select(x => x.Split(':')).Where(x => x.Length == 2).ToDictionary(x => x.First(), x => x.Last());
                 TargetAltitudeSetter = keyValuePairs["Target"];
                 TargetAltitude = int.Parse(TargetAltitudeSetter);
                 NotReady();
