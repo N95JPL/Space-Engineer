@@ -16,7 +16,7 @@ using VRageMath;
 
 namespace IngameScript
 {
-    partial class Program : MyGridProgram
+    partial class ProgramControl : MyGridProgram
     {
         const string LA = "Control Centre Antenna";
         const string LCDs = "Control Centre LCD";
@@ -37,6 +37,8 @@ namespace IngameScript
         string Speed = "Not Received";
         IMyTextPanel LCD;
         IMyLaserAntenna Antenna;
+        DateTime previousDateTime;
+        DateTime launchDateTime;
         int ElevProgress = 0;
 
         const char red = '\uE200';
@@ -631,10 +633,12 @@ namespace IngameScript
                 }
             }
         }
+
         int counter = 0;
         Graphics graphics;
         public void Main(string arg)
         {
+            DateTime currentDateTime = DateTime.Now;
             Antenna = GridTerminalSystem.GetBlockWithName(LA) as IMyLaserAntenna;
             if (Antenna == null)
             {
@@ -691,6 +695,8 @@ namespace IngameScript
                             ShipOutput = CenterText("Ship: Connection changed!");
                         }
                     }
+                    graphics.setFG(255, 0, 0);
+                    graphics.rect("line", 0, 0, 12, 150);
                     if (arg.Contains("Status:"))
                     {
                         Status = keyValuePairs["Status"];
@@ -701,13 +707,16 @@ namespace IngameScript
                         Elevation = keyValuePairs["Elevation"];
                         int Elevation1 = Convert.ToInt32(Elevation);
                         ElevationOutput = CenterText("Elevation: " + Elevation);
-                        ElevProgress = (Elevation1 / 15000);
-                        graphics.setFG(255, 0, 0);
-                        graphics.rect("line", 0, 150, 12, -150);
-                        graphics.paint();
-                        //graphics.print(12, 0, string.Format("{0,5:P0}", ElevProgress));
-                        //graphics.mask(1, 149, 148 * ElevProgress, 8);
-                        //graphics.mask();
+                        ElevProgress = (Elevation1 / 15000)*100;
+                        int ElevPro = (148 * (ElevProgress/100));
+                        graphics.mask(1, 1, 10, 148);
+                        graphics.setFG(0, 255, 0);
+                        graphics.rect("fill", 1, 1, 10, 148);
+                        graphics.print(12, 0, string.Format("{0,5:P0}", ElevProgress));
+                        graphics.mask(1, 1, 10, ElevPro);
+                        graphics.setFG(0, 0, 0);
+                        graphics.rect("fill", 1, 1, 10, ElevPro);
+                        graphics.mask();
                         graphics.paint();
                     }
                     if (arg.Contains("Speed:"))

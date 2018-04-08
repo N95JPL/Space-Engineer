@@ -16,7 +16,7 @@ using VRageMath;
 
 namespace IngameScript
 {
-    partial class Program : MyGridProgram
+    partial class ProgramBeluga : MyGridProgram
     {
         //Commands
         // Argument - Reset (Resets all ships Navigation data)
@@ -24,8 +24,8 @@ namespace IngameScript
         // Launch (Start launch)
         // Abort (Aborts current mission and returns to base)
         //Commands End
-        //Varibles
-        const string Ship = "Booster2"; //Name of ship + " :", for best practise label all blocks (ShipName): (Block Name)
+        //Variables
+        const string Ship = "Booster2"; //Name of ship + " :", for best practice label all blocks (ShipName): (Block Name)
         const string gap = ": "; //DO NOT EDIT
         const string RC = (Ship + gap + "Remote Control"); //Name of Remote Controller
         const string Gyro = (Ship + gap + "Gyro"); //Name of Gyro
@@ -41,7 +41,7 @@ namespace IngameScript
         double MaxR = 67200;
         double PlanetGravity = 9.81;
         double AppTarget = 200;//Meters
-        //Varibles End
+        //Variables End
 
         //No touchy below - JPL
 
