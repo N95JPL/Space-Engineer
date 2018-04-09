@@ -17,7 +17,7 @@ public class Class1
     {
         public static T[] arr<T>(params T[] arg)
         {
-            return arg; //becuse SE is stupid
+            return arg; //because SE is stupid
         }
     }
     public class ColorUtils
@@ -556,7 +556,19 @@ public class Class1
                 }
             }
         }
-        public void centerText (string input, int y)
+        public void colour (string input)
+        {
+            if (input.ToUpper = "RED") { setFG(255, 0, 0); }
+            if (input.ToUpper = "GREEN") { setFG(0, 255, 0); }
+            if (input.ToUpper = "BLUE") { setFG(0, 0, 255); }
+            if (input.ToUpper = "RED") { setFG(255, 0, 0); }
+            if (input.ToUpper = "RED") { setFG(255, 0, 0); }
+            if (input.ToUpper = "RED") { setFG(255, 0, 0); }
+            if (input.ToUpper = "RED") { setFG(255, 0, 0); }
+            if (input.ToUpper = "RED") { setFG(255, 0, 0); }
+
+        }
+        public void centerText (string input, string colour, int y)
         {
             int WordLength = 0;
             foreach (char c in input)
@@ -564,7 +576,7 @@ public class Class1
                 WordLength += 4;
             }
             int textPosition = (width / 2) - (WordLength / 2);
-            graphics.print(textPosition, y, input);
+            print(textPosition, y, input);
         }
         public void titleText(string input, int y)
         {
@@ -574,11 +586,12 @@ public class Class1
                 WordLength += 4;
             }
             int textPosition = (width / 2) - (WordLength / 2);
-            graphics.rect("line", textPosition-2, y-6, WordLength+3, 9);
-            graphics.print(textPosition, y, input);
+            rect("line", textPosition-2, y-6, WordLength+3, 9);
+            print(textPosition, y, input);
         }
-        public void FillBar(string Ori,int x, int y, int width, int height, int MaxValue, int FillValue, string BarColour, string FillColour)
+        public void FillBar(string Ori, int x, int y, int width, int height, int MaxValue, int FillValue, string BarColour, string FillColour)
         {
+        }
     }
     
     public Program()
@@ -601,7 +614,7 @@ public class Class1
         graphics.setFG(0, 0, 0);
         graphics.rect("fill", 1, 1, 131, 86);
 
-        graphics.setFG(0, 0, 255);
+        graphics.setFG(255,0,0);
         graphics.titleText(Ship.ToUpper(), 8); //Title
         graphics.titleText(Ship, 16); //Test
         
