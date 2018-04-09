@@ -7,10 +7,12 @@ public class Class1
     string Ship = "Beluga Lifter";
     int width = 132;
     int height = 89;
+    
+    
+    //No variables below
     Graphics graphics;
     //132, 89
     int counter = 0;
-    int WordLength;
     public class SEFix
     {
         public static T[] arr<T>(params T[] arg)
@@ -188,7 +190,7 @@ public class Class1
             screenLines = new string[width * height + height - 1];
             console = c;
             mask();
-            setFG(255, 255, 255);
+            setFG(0, 0, 0);
             setBG(0, 0, 0);
         }
         public void setFG(int r, int g, int b)
@@ -554,30 +556,31 @@ public class Class1
                 }
             }
         }
-    }
-    string centerText (string input, int y)
-    {
-        WordLength = 0;
-        foreach (char c in input)
+        public void centerText (string input, int y)
         {
-            WordLength += 4;
+            int WordLength = 0;
+            foreach (char c in input)
+            {
+                WordLength += 4;
+            }
+            int textPosition = (width / 2) - (WordLength / 2);
+            graphics.print(textPosition, y, input);
         }
-        int textPosition = (width / 2) - (WordLength / 2);
-        graphics.print(textPosition, y, input);
-        return input;
-    }
-    string titleText(string input, int y)
-    {
-        WordLength = 0;
-        foreach (char c in input)
+        public void titleText(string input, int y)
         {
-            WordLength += 4;
+            int WordLength = 0;
+            foreach (char c in input)
+            {
+                WordLength += 4;
+            }
+            int textPosition = (width / 2) - (WordLength / 2);
+            graphics.rect("line", textPosition-2, y-6, WordLength+3, 9);
+            graphics.print(textPosition, y, input);
         }
-        int textPosition = (width / 2) - (WordLength / 2);
-        graphics.rect("line", textPosition-2, y-6, WordLength+3, 9);
-        graphics.print(textPosition, y, input);
-        return input;
+        public void FillBar(string Ori,int x, int y, int width, int height, int MaxValue, int FillValue, string BarColour, string FillColour)
+        {
     }
+    
     public Program()
     {
         Runtime.UpdateFrequency = UpdateFrequency.Update10;
@@ -599,19 +602,20 @@ public class Class1
         graphics.rect("fill", 1, 1, 131, 86);
 
         graphics.setFG(0, 0, 255);
+        graphics.titleText(Ship.ToUpper(), 8); //Title
+        graphics.titleText(Ship, 16); //Test
+        
+        graphics.setFG(0, 0, 255);
         graphics.rect("line", 2, 10, 12, 76); //Altitude Measure
-        graphics.tri("line", 2, 9, 13, 9, 7, 4);
+        graphics.tri("line", 2, 9, 13, 9, 7, 4); //Altitude Triangle
         graphics.mask(3, 84 - counter, 12, 84); //Altitude Fill Bar
         graphics.setFG(0, 255, 0);
         graphics.rect("fill", 3, 10, 12, 84);
         graphics.mask();
 
-        graphics.setFG(0, 0, 255);
-        titleText(Ship.ToUpper(), 8); //Title
-        titleText(Ship, 16);
         graphics.setFG(0, 255, 0);
         graphics.rect("line", 121, 0, 12, 89); //Hydrogen Levels
-        graphics.mask(122, 0 + counter, 131, 87);
+        graphics.mask(122, 0 + counter, 131, 87); //Hydrogen Fill Bar
         graphics.setFG(0, 255, 0);
         graphics.rect("fill", 122, 1, 10, 87);
         graphics.mask();
