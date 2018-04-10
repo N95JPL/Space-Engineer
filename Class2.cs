@@ -180,6 +180,12 @@ public class Class1
         private string[] screenLines;
         private string[][] fgDither;
         private string[][] bgDither;
+        private string SelectedColour;
+        private int SelectedColourR;
+        private int SelectedColourG;
+        private int SelectedColourB;
+        private string colours;
+        var colourValuePairs;
         private int[] clip = new int[4];
         private Dictionary<string, string[][]> oldPatterns = new Dictionary<string, string[][]>();
         public Graphics(int w, int h, IMyTextPanel c)
@@ -202,11 +208,30 @@ public class Class1
                 oldPatterns[k] = fgDither;
             }
         }
+        public void setFG(string input)
+        {
+            string k = colour(input.ToUpper());
+            if (!oldPatterns.TryGetValue(k, out fgDither))
+            {
+                fgDither = ColorUtils.genDitherPattern(r, g, b);
+                oldPatterns[k] = fgDither;
+            }  
+        }
         public void setBG(int r, int g, int b)
         {
             string k = r + ":" + g + ":" + b;
             if (!oldPatterns.TryGetValue(k, out bgDither))
             {
+                bgDither = ColorUtils.genDitherPattern(r, g, b);
+                oldPatterns[k] = bgDither;
+            }
+        }
+        public void setBG(string colour)
+        {
+            string k = colour(colour.ToUpper());
+            if (!oldPatterns.TryGetValue(k, out bgDither))
+            {
+                k.split(
                 bgDither = ColorUtils.genDitherPattern(r, g, b);
                 oldPatterns[k] = bgDither;
             }
@@ -558,15 +583,42 @@ public class Class1
         }
         public void colour (string input)
         {
-            if (input.ToUpper = "RED") { setFG(255, 0, 0); }
-            if (input.ToUpper = "GREEN") { setFG(0, 255, 0); }
-            if (input.ToUpper = "BLUE") { setFG(0, 0, 255); }
-            if (input.ToUpper = "RED") { setFG(255, 0, 0); }
-            if (input.ToUpper = "RED") { setFG(255, 0, 0); }
-            if (input.ToUpper = "RED") { setFG(255, 0, 0); }
-            if (input.ToUpper = "RED") { setFG(255, 0, 0); }
-            if (input.ToUpper = "RED") { setFG(255, 0, 0); }
-
+            SelectedColour = String.Empty;
+            if (colours = null)
+            {
+                colours += ("RED"+"-"+"255:0:0"+";");
+                colours += ("BLUE"+"-"+"0:0:255"+";");
+                colours += ("ORANGE"+"-"+"255:15:0"+";");
+                colours += ("GREY"+"-"+"128:128:128"+";");
+                colours += ("DARK GREY"+"-"+"105:105:105"+";");
+                colours += ("MAGENTA"+"-"+"255:0:255"+";");
+                colours += ("PINK"+"-"+"255:192:203"+";");
+                colours += ("WHITE"+"-"+"255:255:255"+";");
+                colours += ("BLACK"+"-"+"0:0:0"+";");
+                colourValuePairs = arg.Split(';').Select(x => x.Split('-')).Where(x => x.Length == 2).ToDictionary(x => x.First(), x => x.Last());
+            }
+            if (colourValuePairs.contains(input))
+            {
+                SelectedColour = colourValuePairs[input];
+                string[] SelectedArray = SelectedColour.split(":");
+                SelectedColourR = SelectedArray[1];
+                SelectedColourG = SelectedArray[2];
+                SelectedColourB = SelectedArray[3];
+            }
+            else 
+            { 
+                Echo("ERROR: Selected Colour not found!"); 
+                Echo("ERROR: Colour defaulted to White!");
+                foreach (colourValuePair<String, String> i in colourValuePairs)
+                {
+                    Echo("Colour: " + i.Key);
+                }
+                SelectedColour = "255:255:255"; 
+            }
+            SelectedColourR
+            SelectedColourG
+            SelectedColourB
+            return SelectedColour;
         }
         public void centerText (string input, string colour, int y)
         {
@@ -576,9 +628,10 @@ public class Class1
                 WordLength += 4;
             }
             int textPosition = (width / 2) - (WordLength / 2);
+            setFG(colour);
             print(textPosition, y, input);
         }
-        public void titleText(string input, int y)
+        public void titleText(string input, string TextColour, string BoxColour, int y)
         {
             int WordLength = 0;
             foreach (char c in input)
@@ -586,7 +639,9 @@ public class Class1
                 WordLength += 4;
             }
             int textPosition = (width / 2) - (WordLength / 2);
-            rect("line", textPosition-2, y-6, WordLength+3, 9);
+            setFG(BoxColour);
+            rect("line", textPosition-2, y-6, WordLength+2, 9);
+            setFG(TextColour);
             print(textPosition, y, input);
         }
         public void FillBar(string Ori, int x, int y, int width, int height, int MaxValue, int FillValue, string BarColour, string FillColour)
@@ -615,7 +670,7 @@ public class Class1
         graphics.rect("fill", 1, 1, 131, 86);
 
         graphics.setFG(255,0,0);
-        graphics.titleText(Ship.ToUpper(), 8); //Title
+        graphics.titleText(Ship.ToUpper(), "BLUE", "BLUE", 8); //Title
         graphics.titleText(Ship, 16); //Test
         
         graphics.setFG(0, 0, 255);
