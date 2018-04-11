@@ -63,15 +63,14 @@ namespace IngameScript
         SEFix.arr( 0, 0, 0)
     };
             private static string[] colorStrings = new string[] {
-        "\uE004", //oh but it works fine with *strings* -_-
-        "\uE003",
-        "\uE002",
-        "\uE001",
-        "\uE007\u0458",
-        "\uE00D",
-        "\u2014\u0060"
+        "\u25a1\u25a1", //oh but it works fine with *strings* -_-
+        "\u2593\u2593",
+        "\u25a0\u25a0",
+        "\u25a0\u25a0",
+        "\u25a0\u25a0",
+        "\u25a0\u25a0",
+        "  "
     };
-
             private static int redC = 300;
             private static int greenC = 540;
             private static int blueC = 150;
@@ -659,6 +658,17 @@ namespace IngameScript
                 setFG(TextColour);
                 print(textPositionX, textPositionY, time);
             }
+            public static string GetColorString(string name)
+            { string output = "";
+                foreach (char c in name)
+                {
+                    byte r = (byte)((1 / 32));
+                    byte g = (byte)((0) / 32);
+                    byte b = (byte)((0) / 32);
+                    output += ((char)((0xe100 + (r << 6) + (g << 3) + b))).ToString();
+                }
+                return output;
+            }
             public void FillBar(string name, string Ori, int x, int y, int width, int height, int MaxValue, int FillValue, int Warning, string BarColour, string FillColour, string TextColour)
             {
                 if (Ori == "Vertical")
@@ -673,7 +683,7 @@ namespace IngameScript
                         WordLength += 4;
                     }
                     int textPosition = ((x + (width / 2)) - (WordLength / 2));
-                    print(textPosition, (y - 2), name);
+                    print(textPosition, (y - 2), GetColorString(name);
                     if (FillValue == 0)
                     {
                         if (ErrorFlash)
