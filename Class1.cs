@@ -28,6 +28,7 @@ namespace IngameScript
             public int Height { get; private set; }
             private string[] Foreground = { "\uE2FF", "\uE2FF" }; //White
             private string Background = "\uE100"; //Black
+            private int[] clip = new int[4];
             Action<string> Echo;
             private Random Rand;
 
@@ -195,6 +196,201 @@ namespace IngameScript
                     }
                 }
             }
+            private void flatBottom(int x1, int y1, int x2, int y2, int x3, int y3)
+            {
+                float invslope1 = (float)(x2 - x1) / (y2 - y1);
+                float invslope2 = (float)(x3 - x1) / (y3 - y1);
+                float curx1 = x1;
+                float curx2 = x1;
+                for (int scanlineY = y1; scanlineY <= y2; scanlineY++)
+                {
+                    line((int)curx1, scanlineY, (int)curx2, scanlineY);
+                    curx1 += invslope1;
+                    curx2 += invslope2;
+                }
+            }
+            private void flatTop(int x1, int y1, int x2, int y2, int x3, int y3)
+            {
+                float invslope1 = (float)(x3 - x1) / (y3 - y1);
+                float invslope2 = (float)(x3 - x2) / (y3 - y2);
+                float curx1 = x3;
+                float curx2 = x3;
+                for (int scanlineY = y3; scanlineY > y1; scanlineY--)
+                {
+                    curx1 -= invslope1;
+                    curx2 -= invslope2;
+                    line((int)curx1, scanlineY, (int)curx2, scanlineY);
+                }
+            }
+            private void swap(ref int a, ref int b)
+            {
+                int c = a;
+                a = b;
+                b = c;
+            }
+            public void tri(string m, int x1, int y1, int x2, int y2, int x3, int y3)
+            {
+                if (m == "line")
+                {
+                    line(x1, y1, x2, y2);
+                    line(x2, y2, x3, y3);
+                    line(x3, y3, x1, y1);
+                }
+                else if (m == "fill")
+                {
+                    if (y1 > y3)
+                    {
+                        swap(ref y1, ref y3);
+                        swap(ref x1, ref x3);
+                    }
+                    if (y1 > y2)
+                    {
+                        swap(ref y1, ref y2);
+                        swap(ref x1, ref x2);
+                    }
+                    if (y2 > y3)
+                    {
+                        swap(ref y2, ref y3);
+                        swap(ref x2, ref x3);
+                    }
+                    if (y2 == y3)
+                    {
+                        flatBottom(x1, y1, x2, y2, x3, y3);
+                    }
+                    else if (y1 == y2)
+                    {
+                        flatTop(x1, y1, x2, y2, x3, y3);
+                    }
+                    else
+                    {
+                        int x4 = (int)(x1 + ((float)(y2 - y1) / (float)(y3 - y1)) * (x3 - x1));
+                        flatBottom(x1, y1, x2, y2, x4, y2);
+                        flatTop(x2, y2, x4, y2, x3, y3);
+                    }
+                }
+            }
+            public void ellipse(string m, int cx, int cy, int rx, int ry)
+            {
+                int rx2 = rx * rx;
+                int ry2 = ry * ry;
+                if (m == "fill")
+                {
+                    int rxsys = rx2 * ry2;
+                    pixel(cx, cy);
+                    for (int i = 1; i < rx * ry; i++)
+                    {
+                        int x = i % rx;
+                        int y = i / rx;
+                        if (ry2 * x * x + rx2 * y * y <= rxsys)
+                        {
+                            pixel(cx + x, cy + y);
+                            pixel(cx - x, cy - y);
+                            //if (x && y) { //unnecessary (prevents overdrawing pixels)
+                            pixel(cx + x, cy - y);
+                            pixel(cx - x, cy + y);
+                            //}
+                        }
+                    }
+                }
+                else if (m == "line")
+                {
+                    int frx2 = 4 * rx2;
+                    int fry2 = 4 * ry2;
+                    int s = 2 * ry2 + rx2 * (1 - 2 * ry);
+                    int y = ry;
+                    for (int x = 0; ry2 * x <= rx2 * y; x++)
+                    {
+                        pixel(cx + x, cy + y);
+                        pixel(cx - x, cy + y);
+                        pixel(cx + x, cy - y);
+                        pixel(cx - x, cy - y);
+                        if (s >= 0)
+                        {
+                            s += frx2 * (1 - y);
+                            y--;
+                        }
+                        s += ry2 * ((4 * x) + 6);
+                    }
+                    y = 0;
+                    s = 2 * rx2 + ry2 * (1 - 2 * rx);
+                    for (int x = rx; rx2 * y <= ry2 * x; y++)
+                    {
+                        pixel(cx + x, cy + y);
+                        pixel(cx - x, cy + y);
+                        pixel(cx + x, cy - y);
+                        pixel(cx - x, cy - y);
+                        if (s >= 0)
+                        {
+                            s += fry2 * (1 - x);
+                            x--;
+                        }
+                        s += rx2 * ((4 * y) + 6);
+                    }
+                }
+            }
+            public void circle(string m, int cx, int cy, int r)
+            {
+                if (m == "fill")
+                {
+                    int rr = r * r;
+                    pixel(cx, cy);
+                    for (int i = 1; i < r * r; i++)
+                    {
+                        int x = i % r;
+                        int y = i / r;
+                        if (x * x + y * y < rr)
+                        {
+                            pixel(cx + x, cy + y);
+                            pixel(cx - x, cy - y);
+                            if (x > 0 && y > 0)
+                            {
+                                pixel(cx + x, cy - y);
+                                pixel(cx - x, cy + y);
+                            }
+                        }
+                    }
+                }
+                else if (m == "line")
+                {
+                    int x = r;
+                    int y = 0;
+                    int do2 = 1 - x;
+                    while (y <= x)
+                    {
+                        pixel(cx + x, cy + y);
+                        pixel(cx + y, cy + x);
+                        pixel(cx - x, cy + y);
+                        pixel(cx - y, cy + x);
+                        pixel(cx - x, cy - y);
+                        pixel(cx - y, cy - x);
+                        pixel(cx + x, cy - y);
+                        pixel(cx + y, cy - x);
+                        y++;
+                        if (do2 <= 0)
+                        {
+                            do2 += 2 * y + 1;
+                        }
+                        else
+                        {
+                            do2 += 2 * (y - --x) + 1;
+                        }
+                    }
+                }
+            }
+            public void mask(int x1, int y1, int x2, int y2)
+            {
+                clip[0] = x1;
+                clip[1] = y1;
+                clip[2] = x2;
+                clip[3] = y2;
+            }
+            public void mask()
+            {
+                clip[0] = 0;
+                clip[1] = 0;
+                clip[2] = width - 1;
+                clip[3] = height - 1;
+            }
             public void Print(int x, int y, string text, Align align = Align.Left)
             {
                 y += 4; //Offset so that y represents the top of the text, like the shapes.
@@ -230,6 +426,92 @@ namespace IngameScript
                             x1 += 4;
                             break;
                     }
+                }
+            }
+            public void centerText(string input, colour colour, int y)
+            {
+                int WordLength = 0;
+                foreach (char c in input)
+                {
+                    WordLength += 4;
+                }
+                int textPosition = (width / 2) - (WordLength / 2);
+                setForeground(colour);
+                print(textPosition, y, input);
+            }
+            public void titleText(string input, colour TextColour, colour BoxColour, int y)
+            {
+                int WordLength = 0;
+                foreach (char c in input)
+                {
+                    WordLength += 4;
+                }
+                int textPosition = (width / 2) - (WordLength / 2);
+                setForeground(BoxColour);
+                rect("line", textPosition - 2, y - 2, WordLength + 3, 9);
+                setForeground(TextColour);
+                print(textPosition, y, input.ToUpper());
+            }
+            public void systemTime(colour TextColour, colour BoxColour)
+            {
+                string time = DateTime.Now.ToString("HH:mm:ss");
+                int WordLength = 0;
+                foreach (char c in time)
+                {
+                    WordLength += 4;
+                }
+                int textPositionX = (width / 2) - (WordLength / 2);
+                int textPositionY = (height - 10);
+                setForeground(BoxColour);
+                rect("line", textPositionX - 2, textPositionY - 2, WordLength + 3, 9);
+                setForeground(TextColour);
+                print(textPositionX, textPositionY, time);
+            }
+            public void FillBar(string name, string Ori, int x, int y, int width, int height, int MaxValue, int FillValue, int Warning, colour BarColour, colour FillColour, colour TextColour)
+            {
+                if (Ori == "Vertical")
+                {
+                    setForeground(BarColour);
+                    rect(x, y, width, height, false);
+                    int filla = (FillValue * 100 / MaxValue * 100);
+                    int fill = ((y + height + 1) - (height * (filla / 100) / 100));
+                    int WordLength = 0;
+                    foreach (char c in name)
+                    {
+                        WordLength += 4;
+                    }
+                    int textPosition = ((x + (width / 2)) - (WordLength / 2));
+                    print(textPosition, (y - 6), name;
+                    if (FillValue == 0)
+                    {
+                        if (ErrorFlash)
+                        {
+                            mask(x + 1, y + 1, x + width - 2, height + y - 2);
+                            ErrorFlash = false;
+                        }
+                        else if (!ErrorFlash)
+                        {
+                            mask(x + 1, fill, x + width - 2, height + y - 2);
+                            ErrorFlash = true;
+                        }
+                    }
+                    else { mask(x + 1, fill, x + width - 2, height + y - 2); }
+                    if (filla / 100 < Warning)
+                    {
+                        FillColour = (Colour.Red);
+                        TextColour = (Colour.Red);
+                    }
+                    SetForeground(FillColour);
+                    rect(x + 1, y + 1, width - 2, height - 2,true);
+                    mask();
+                    setForeground(TextColour);
+                    int CharY = 0;
+                    foreach (char c in FillValue.ToString())
+                    {
+                        print(x + (width / 2) - 2, y + 2 + CharY, c.ToString());
+                        CharY += 6;
+                    }
+                    //print(40, 40, fill.ToString());
                 }
             }
             public void Clear()
@@ -293,19 +575,27 @@ namespace IngameScript
         }
         public enum Align { Left, Center, Right };
 
+// Vars 
+        string Ship = "Beluga Lifter";
+        const string LCDs = "Control Centre LCD";
+        int width = 132;
+        int height = 89;
+        int counter = 0;
+        int currentAltitude = 0;
+        int currentFuel = 100;
+
         Graphics G;
         IMyTextPanel LCD;
         public Program()
         {
-            LCD = GridTerminalSystem.GetBlockWithName("LCD Panel") as IMyTextPanel;
+            LCD = GridTerminalSystem.GetBlockWithName(LCDs) as IMyTextPanel;
             LCD.FontSize = 0.2f;
             LCD.FontColor = Color.White;
             LCD.BackgroundColor = Color.Black;
             LCD.Font = "DotMatrix";
             LCD.ShowPublicTextOnScreen();
-
-
-            G = new Graphics(132, 89, LCD, Echo); //width in pixels, height in pixels, lcd panel, The echo method for debugging.
+            G = new Graphics(width, height, LCD, Echo); //width in pixels, height in pixels, lcd panel, The echo method for debugging.
+            Runtime.UpdateFrequency = UpdateFrequency.Update10;
         }
 
         public void Save()
@@ -313,10 +603,31 @@ namespace IngameScript
 
         }
 
-        public void Main(string argument)
+        public void Main(string arg)
         {
-            G.SetForeground(Color.Green);
-            G.Rect(5, 5, 10, 10, true);
+            if (arg == "Reset") { currentAltitude = 0; counter = 0; currentFuel = 100; }
+            G.echo("Counter: " + counter);
+            G.clear();
+            G.setBackground(Colour.Black);
+            G.setForeground(Colour.Red);
+            G.rect("line", 0, 0, 131, 88, false); //LCD Boarder     
+
+            G.titleText(Ship, Colour.Blue, Colour.Blue, 4); //Title
+
+            G.FillBar("Alt", "Vertical", 4, 10, 12, 76, 10000, currentAltitude, 10, Colour.Blue, Colour.Green, Colour.Orange);
+
+            G.FillBar("Fuel", "Vertical", 115, 10, 12, 76, 100, currentFuel, 25, Colour.Blue, Colour.Green, Colour.Orange);
+
+            G.systemTime(Colour.Orange, Colour.Blue);
+
+            G.paint();
+
+            if (counter < 100)
+            {
+                counter += 1;
+                currentAltitude += 100;
+                currentFuel -= 1;
+            }
             G.Draw();
         }
     }
