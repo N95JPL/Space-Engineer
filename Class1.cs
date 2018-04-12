@@ -467,14 +467,17 @@ namespace IngameScript
                 setForeground(TextColour);
                 print(textPositionX, textPositionY, time);
             }
-            public void FillBar(string name, string Ori, int x, int y, int width, int height, int MaxValue, int FillValue, int Warning, colour BarColour, colour FillColour, colour TextColour)
+            public void FillBar(string name, string Ori, int x, int y, int width, int height, int MaxValue, int FillValue, string value, int Warning, colour BarColour, colour FillColour, colour TextColour)
             {
                 if (Ori == "Vertical")
                 {
                     setForeground(BarColour);
                     rect(x, y, width, height, false);
-                    float filla = ((float)FillValue / (float)MaxValue);
-                    int fill = ((y + height + 1) - (int)(height * filla));
+                    //float filla = ((float)FillValue / (float)MaxValue);
+                    var precent = (FillValue/MaxValue);
+                    var fillb = (height * percent);
+                    int filla = int.Parse(fillb.ToString());
+                    int fill = ((y + height + 1) - (filla));
                     int WordLength = 0;
                     foreach (char c in name)
                     {
@@ -508,11 +511,24 @@ namespace IngameScript
                     mask();
                     setForeground(TextColour);
                     int CharY = 0;
-                    foreach (char c in FillValue.ToString())
+                    if (value == "%"){
+                    foreach (char c in (percent.ToString()+"%"))
                     {
                         print(x + (width / 2) - 2, y + 2 + CharY, c.ToString());
                         CharY += 6;
-                    }
+                    }}
+                    else if (value == "m") {
+                    foreach (char c in (FillValue.ToString()+"m"))
+                    {
+                        print(x + (width / 2) - 2, y + 2 + CharY, c.ToString());
+                        CharY += 6;
+                    }}
+                    else {
+                    foreach (char c in (FillValue.ToString()))
+                    {
+                        print(x + (width / 2) - 2, y + 2 + CharY, c.ToString());
+                        CharY += 6;
+                    }}
                 }
             }
             public void Clear()
@@ -615,9 +631,9 @@ namespace IngameScript
 
             G.titleText(Ship, Color.Blue, Color.Blue, 4); //Title
 
-            G.FillBar("Alt", "Vertical", 4, 10, 12, 76, 10000, currentAltitude, 10, Color.Blue, Color.Green, Color.Orange);
+            G.FillBar("Alt", "Vertical", 4, 10, 12, 76, 10000, currentAltitude, "m", 10, Color.Blue, Color.Green, Color.Orange);
 
-            G.FillBar("Fuel", "Vertical", 115, 10, 12, 76, 100, currentFuel, 25, Color.Blue, Color.Green, Color.Orange);
+            G.FillBar("Fuel", "Vertical", 115, 10, 12, 76, 100, currentFuel,"%", 25, Color.Blue, Color.Green, Color.Orange);
 
             G.systemTime(Color.Orange, Color.Blue);
 
