@@ -1,4 +1,4 @@
-﻿using Sandbox.Game.EntityComponents;
+using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI.Ingame;
 using Sandbox.ModAPI.Interfaces;
 using SpaceEngineers.Game.ModAPI.Ingame;
@@ -473,8 +473,8 @@ namespace IngameScript
                 {
                     setForeground(BarColour);
                     rect(x, y, width, height, false);
-                    int filla = (FillValue * 100 / MaxValue * 100);
-                    int fill = ((y + height + 1) - (height * (filla / 100) / 100));
+                    float filla = ((float)FillValue / (float)MaxValue);
+                    int fill = ((y + height + 1) - (int)(height * filla));
                     int WordLength = 0;
                     foreach (char c in name)
                     {
@@ -495,11 +495,13 @@ namespace IngameScript
                             ErrorFlash = true;
                         }
                     }
-                    else { mask(x + 1, fill, x + width - 2, height + y - 2); }
+                    else 
+                    { 
+                        mask(x + 1, fill, x + width - 2, height + y - 2); }
                     if (filla / 100 < Warning)
                     {
-                        FillColour = (Colour.Red);
-                        TextColour = (Colour.Red);
+                        FillColour = (Color.Red);
+                        TextColour = (Color.Red);
                     }
                     SetForeground(FillColour);
                     rect(x + 1, y + 1, width - 2, height - 2,true);
@@ -511,7 +513,6 @@ namespace IngameScript
                         print(x + (width / 2) - 2, y + 2 + CharY, c.ToString());
                         CharY += 6;
                     }
-                    //print(40, 40, fill.ToString());
                 }
             }
             public void Clear()
@@ -608,17 +609,17 @@ namespace IngameScript
             if (arg == "Reset") { currentAltitude = 0; counter = 0; currentFuel = 100; }
             G.echo("Counter: " + counter);
             G.clear();
-            G.setBackground(Colour.Black);
-            G.setForeground(Colour.Red);
+            G.setBackground(Color.Black);
+            G.setForeground(Color.Red);
             G.rect("line", 0, 0, 131, 88, false); //LCD Boarder     
 
-            G.titleText(Ship, Colour.Blue, Colour.Blue, 4); //Title
+            G.titleText(Ship, Color.Blue, Color.Blue, 4); //Title
 
-            G.FillBar("Alt", "Vertical", 4, 10, 12, 76, 10000, currentAltitude, 10, Colour.Blue, Colour.Green, Colour.Orange);
+            G.FillBar("Alt", "Vertical", 4, 10, 12, 76, 10000, currentAltitude, 10, Color.Blue, Color.Green, Color.Orange);
 
-            G.FillBar("Fuel", "Vertical", 115, 10, 12, 76, 100, currentFuel, 25, Colour.Blue, Colour.Green, Colour.Orange);
+            G.FillBar("Fuel", "Vertical", 115, 10, 12, 76, 100, currentFuel, 25, Color.Blue, Color.Green, Color.Orange);
 
-            G.systemTime(Colour.Orange, Colour.Blue);
+            G.systemTime(Color.Orange, Color.Blue);
 
             G.paint();
 
