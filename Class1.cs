@@ -32,6 +32,7 @@ namespace IngameScript
             private bool ErrorFlash = false;
             Action<string> Echo;
             private Random Rand;
+            NumberFormatInfo percentFormat = new NumberFormatInfo {PercentPositivePattern = 1, PercentNegativePattern = 1 };
 
             #region Ascii
             private const int Offset = 0x21;
@@ -455,17 +456,14 @@ namespace IngameScript
                 SetForeground(TextColour);
                 Print(textPositionX, textPositionY, time);
             }
-            public void FillBar(string name, string Ori, int x, int y, int width, int height, int MaxValue, int FillValue, string value, int Warning, Color BarColour, Color FillColour, Color TextColour)
+            public void FillBar(string name, string Ori, int x, int y, int width, int height, int MaxValue, int MinValue, int FillValue, string value, string Warning, Color BarColour, Color FillColour, Color TextColour)
             {
                 if (Ori == "Vertical")
                 {
                     SetForeground(BarColour);
                     Rect(x, y, width, height, false);
                     //float filla = (FillValue / (floatMaxValue);
-                    int percent = ((FillValue) / (MaxValue) * 100);
-                    int fillb = (height * percent) / 100;
-                    //int filla = int.Parse(fillb.ToString());
-                    int fill = ((y + height - 1) - (int)(fillb));
+                    int fill = Map(FillValue,0,MaxValue,0,height-2);
                     int WordLength = 0;
                     foreach (char c in name)
                     {
@@ -473,35 +471,50 @@ namespace IngameScript
                     }
                     int textPosition = ((x + (width / 2)) - (WordLength / 2));
                     Print(textPosition, (y - 6), name);
-                    if (fill < Warning)
+                    double Percent = (double)((FillValue*100)/MaxValue);
+                    string[] SelectedArray = Warning.Split(':');
+                    int WarningInt = ToInt32.Parse(SelectedArray[1])
+                    if (SelectedArray[0] = "<")
                     {
-                        FillColour = (Color.Red);
-                        TextColour = (Color.Red);
+                        if (Percent < WarningInt)
+                        {
+                            FillColour = (Color.Red);
+                            TextColour = (Color.Red);
+                        }
                     }
-                    if (FillValue == 0)
+                    else if (SelectedArray[0] = ">")
+                    {
+                        if (Percent > WarningInt)
+                        {
+                            FillColour = (Color.Red);
+                            TextColour = (Color.Red);
+                        }
+                    }
+                    if (FillValue <= MinValue || FillValue > MaxValue)
                     {
                         if (ErrorFlash)
                         {
-                            //mask(x + 1, y + 1, x + width - 2, height + y - 2);
+                            Rect(x + 1, (y+1), width - 2, (height-2), true);
                             ErrorFlash = false;
                         }
                         else if (!ErrorFlash)
                         {
-                            //mask(x + 1, fill, x + width - 2, height + y - 2);
+                            Rect(x + 1, (y+1), width - 2, (height-2), false);
                             ErrorFlash = true;
                         }
                     }
                     else
                     {
                         SetForeground(FillColour);
-                        Rect(x + 1, fill, width - 2, height - (height - 1 - fill) - 2, true);
+                        Rect(x + 1, ((y+1)+(height-2))-fill, width - 2, fill, true);
                     }
                     SetForeground(TextColour);
                     int CharY = 0;
                     Print(90, 20, fillb.ToString());
                     if (value == "%")
                     {
-                        foreach (char c in (percent.ToString() + "%"))
+                        string percent = (Math.Round(Percent,0)).ToString("P2", percentFormat);
+                        foreach (char c in (percent)
                         {
                             Print(x + (width / 2) - 2, y + 2 + CharY, c.ToString());
                             CharY += 6;
@@ -509,7 +522,7 @@ namespace IngameScript
                     }
                     else if (value == "m")
                     {
-                        foreach (char c in (FillValue.ToString() + "m"))
+                        foreach (char c in (Math.Round(FillValue,0)).ToString() + "m"))
                         {
                             Print(x + (width / 2) - 2, y + 2 + CharY, c.ToString());
                             CharY += 6;
@@ -583,6 +596,7 @@ namespace IngameScript
             {
                 return ((char)((0xe100 + (Map(color.R, 0, 255, 0, 7) << 6) + (Map(color.G, 0, 255, 0, 7) << 3) + Map(color.B, 0, 255, 0, 7)))).ToString();
             }
+            
         }
         public enum Align { Left, Center, Right };
 
@@ -628,9 +642,9 @@ namespace IngameScript
 
             G.titleText(Ship, Color.Blue, Color.Blue, 4); //Title
 
-            G.FillBar("Alt", "Vertical", 4, 10, 12, 76, 10000, currentAltitude, "m", 10, Color.Blue, Color.Green, Color.Orange);
+            G.FillBar("Alt", "Vertical", 4, 10, 12, 76, 10000, 0, currentAltitude, "m", ">:100", Color.Blue, Color.Green, Color.Orange);
 
-            //G.FillBar("Fuel", "Vertical", 115, 10, 12, 76, 100, currentFuel,"%", 25, Color.Blue, Color.Green, Color.Orange);
+            //G.FillBar("Fuel", "Vertical", 115, 10, 12, 76, 100, 0, currentFuel,"%", "<:25", Color.Blue, Color.Green, Color.Orange);
 
             G.systemTime(Color.Orange, Color.Blue);
 
