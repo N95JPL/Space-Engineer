@@ -472,9 +472,9 @@ namespace IngameScript
                     int textPosition = ((x + (width / 2)) - (WordLength / 2));
                     Print(textPosition, (y - 6), name);
                     double Percent = (double)((FillValue*100)/MaxValue);
-                    string[] SelectedArray = Warning.Split(':');
-                    int WarningInt = ToInt32.Parse(SelectedArray[1])
-                    if (SelectedArray[0] = "<")
+                    string[] WarningArray = Warning.Split(':');
+                    int WarningInt = ToInt32.Parse(WarningArray[1])
+                    if (WarningArray[0] = "<")
                     {
                         if (Percent < WarningInt)
                         {
@@ -482,7 +482,7 @@ namespace IngameScript
                             TextColour = (Color.Red);
                         }
                     }
-                    else if (SelectedArray[0] = ">")
+                    else if (WarningArray[0] = ">")
                     {
                         if (Percent > WarningInt)
                         {
