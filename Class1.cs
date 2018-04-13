@@ -18,7 +18,7 @@ namespace IngameScript
 {
     partial class Program : MyGridProgram
     {
-        class Graphics
+        public class Graphics
         {
             private List<IMyTextPanel> Panels;
             private string[] Screen;
@@ -29,6 +29,7 @@ namespace IngameScript
             private string[] Foreground = { "\uE2FF", "\uE2FF" }; //White
             private string Background = "\uE100"; //Black
             private int[] clip = new int[4];
+            private bool ErrorFlash = false;
             Action<string> Echo;
             private Random Rand;
 
@@ -69,19 +70,6 @@ namespace IngameScript
             }
             #endregion
 
-            public Graphics(int width, int height, List<IMyTextPanel> panels, Action<string> echo)
-            {
-                Width = width;
-                Height = height;
-                Screen = new string[Width * Height];
-                ClearScreen = new string[Width * Height];
-                ScreenLines = new string[Width * Height + Height - 1];
-                Panels = panels;
-                Echo = echo;
-                SetBackground(Background, true);
-                Rand = new Random();
-                Clear();
-            }
             public Graphics(int width, int height, IMyTextPanel panel, Action<string> echo)
             {
                 Width = width;
@@ -204,7 +192,7 @@ namespace IngameScript
                 float curx2 = x1;
                 for (int scanlineY = y1; scanlineY <= y2; scanlineY++)
                 {
-                    line((int)curx1, scanlineY, (int)curx2, scanlineY);
+                    Line((int)curx1, scanlineY, (int)curx2, scanlineY);
                     curx1 += invslope1;
                     curx2 += invslope2;
                 }
@@ -219,7 +207,7 @@ namespace IngameScript
                 {
                     curx1 -= invslope1;
                     curx2 -= invslope2;
-                    line((int)curx1, scanlineY, (int)curx2, scanlineY);
+                    Line((int)curx1, scanlineY, (int)curx2, scanlineY);
                 }
             }
             private void swap(ref int a, ref int b)
@@ -232,9 +220,9 @@ namespace IngameScript
             {
                 if (m == "line")
                 {
-                    line(x1, y1, x2, y2);
-                    line(x2, y2, x3, y3);
-                    line(x3, y3, x1, y1);
+                    Line(x1, y1, x2, y2);
+                    Line(x2, y2, x3, y3);
+                    Line(x3, y3, x1, y1);
                 }
                 else if (m == "fill")
                 {
@@ -276,18 +264,18 @@ namespace IngameScript
                 if (m == "fill")
                 {
                     int rxsys = rx2 * ry2;
-                    pixel(cx, cy);
+                    Pixel(cx, cy);
                     for (int i = 1; i < rx * ry; i++)
                     {
                         int x = i % rx;
                         int y = i / rx;
                         if (ry2 * x * x + rx2 * y * y <= rxsys)
                         {
-                            pixel(cx + x, cy + y);
-                            pixel(cx - x, cy - y);
+                            Pixel(cx + x, cy + y);
+                            Pixel(cx - x, cy - y);
                             //if (x && y) { //unnecessary (prevents overdrawing pixels)
-                            pixel(cx + x, cy - y);
-                            pixel(cx - x, cy + y);
+                            Pixel(cx + x, cy - y);
+                            Pixel(cx - x, cy + y);
                             //}
                         }
                     }
@@ -300,10 +288,10 @@ namespace IngameScript
                     int y = ry;
                     for (int x = 0; ry2 * x <= rx2 * y; x++)
                     {
-                        pixel(cx + x, cy + y);
-                        pixel(cx - x, cy + y);
-                        pixel(cx + x, cy - y);
-                        pixel(cx - x, cy - y);
+                        Pixel(cx + x, cy + y);
+                        Pixel(cx - x, cy + y);
+                        Pixel(cx + x, cy - y);
+                        Pixel(cx - x, cy - y);
                         if (s >= 0)
                         {
                             s += frx2 * (1 - y);
@@ -315,10 +303,10 @@ namespace IngameScript
                     s = 2 * rx2 + ry2 * (1 - 2 * rx);
                     for (int x = rx; rx2 * y <= ry2 * x; y++)
                     {
-                        pixel(cx + x, cy + y);
-                        pixel(cx - x, cy + y);
-                        pixel(cx + x, cy - y);
-                        pixel(cx - x, cy - y);
+                        Pixel(cx + x, cy + y);
+                        Pixel(cx - x, cy + y);
+                        Pixel(cx + x, cy - y);
+                        Pixel(cx - x, cy - y);
                         if (s >= 0)
                         {
                             s += fry2 * (1 - x);
@@ -333,19 +321,19 @@ namespace IngameScript
                 if (m == "fill")
                 {
                     int rr = r * r;
-                    pixel(cx, cy);
+                    Pixel(cx, cy);
                     for (int i = 1; i < r * r; i++)
                     {
                         int x = i % r;
                         int y = i / r;
                         if (x * x + y * y < rr)
                         {
-                            pixel(cx + x, cy + y);
-                            pixel(cx - x, cy - y);
+                            Pixel(cx + x, cy + y);
+                            Pixel(cx - x, cy - y);
                             if (x > 0 && y > 0)
                             {
-                                pixel(cx + x, cy - y);
-                                pixel(cx - x, cy + y);
+                                Pixel(cx + x, cy - y);
+                                Pixel(cx - x, cy + y);
                             }
                         }
                     }
@@ -357,14 +345,14 @@ namespace IngameScript
                     int do2 = 1 - x;
                     while (y <= x)
                     {
-                        pixel(cx + x, cy + y);
-                        pixel(cx + y, cy + x);
-                        pixel(cx - x, cy + y);
-                        pixel(cx - y, cy + x);
-                        pixel(cx - x, cy - y);
-                        pixel(cx - y, cy - x);
-                        pixel(cx + x, cy - y);
-                        pixel(cx + y, cy - x);
+                        Pixel(cx + x, cy + y);
+                        Pixel(cx + y, cy + x);
+                        Pixel(cx - x, cy + y);
+                        Pixel(cx - y, cy + x);
+                        Pixel(cx - x, cy - y);
+                        Pixel(cx - y, cy - x);
+                        Pixel(cx + x, cy - y);
+                        Pixel(cx + y, cy - x);
                         y++;
                         if (do2 <= 0)
                         {
@@ -388,8 +376,8 @@ namespace IngameScript
             {
                 clip[0] = 0;
                 clip[1] = 0;
-                clip[2] = width - 1;
-                clip[3] = height - 1;
+                clip[2] = Width - 1;
+                clip[3] = Height - 1;
             }
             public void Print(int x, int y, string text, Align align = Align.Left)
             {
@@ -428,31 +416,31 @@ namespace IngameScript
                     }
                 }
             }
-            public void centerText(string input, colour colour, int y)
+            public void centerText(string input, Color colour, int y)
             {
                 int WordLength = 0;
                 foreach (char c in input)
                 {
                     WordLength += 4;
                 }
-                int textPosition = (width / 2) - (WordLength / 2);
-                setForeground(colour);
-                print(textPosition, y, input);
+                int textPosition = (Width / 2) - (WordLength / 2);
+                SetForeground(colour);
+                Print(textPosition, y, input);
             }
-            public void titleText(string input, colour TextColour, colour BoxColour, int y)
+            public void titleText(string input, Color TextColour, Color BoxColour, int y)
             {
                 int WordLength = 0;
                 foreach (char c in input)
                 {
                     WordLength += 4;
                 }
-                int textPosition = (width / 2) - (WordLength / 2);
-                setForeground(BoxColour);
-                rect("line", textPosition - 2, y - 2, WordLength + 3, 9);
-                setForeground(TextColour);
-                print(textPosition, y, input.ToUpper());
+                int textPosition = (Width / 2) - (WordLength / 2);
+                SetForeground(BoxColour);
+                Rect(textPosition - 2, y - 2, WordLength + 3, 9, false);
+                SetForeground(TextColour);
+                Print(textPosition, y, input.ToUpper());
             }
-            public void systemTime(colour TextColour, colour BoxColour)
+            public void systemTime(Color TextColour, Color BoxColour)
             {
                 string time = DateTime.Now.ToString("HH:mm:ss");
                 int WordLength = 0;
@@ -460,75 +448,81 @@ namespace IngameScript
                 {
                     WordLength += 4;
                 }
-                int textPositionX = (width / 2) - (WordLength / 2);
-                int textPositionY = (height - 10);
-                setForeground(BoxColour);
-                rect("line", textPositionX - 2, textPositionY - 2, WordLength + 3, 9);
-                setForeground(TextColour);
-                print(textPositionX, textPositionY, time);
+                int textPositionX = (Width / 2) - (WordLength / 2);
+                int textPositionY = (Height - 10);
+                SetForeground(BoxColour);
+                Rect(textPositionX - 2, textPositionY - 2, WordLength + 3, 9);
+                SetForeground(TextColour);
+                Print(textPositionX, textPositionY, time);
             }
-            public void FillBar(string name, string Ori, int x, int y, int width, int height, int MaxValue, int FillValue, string value, int Warning, colour BarColour, colour FillColour, colour TextColour)
+            public void FillBar(string name, string Ori, int x, int y, int width, int height, int MaxValue, int FillValue, string value, int Warning, Color BarColour, Color FillColour, Color TextColour)
             {
                 if (Ori == "Vertical")
                 {
-                    setForeground(BarColour);
-                    rect(x, y, width, height, false);
-                    //float filla = ((float)FillValue / (float)MaxValue);
-                    var precent = (FillValue/MaxValue);
-                    var fillb = (height * percent);
-                    int filla = int.Parse(fillb.ToString());
-                    int fill = ((y + height + 1) - (filla));
+                    SetForeground(BarColour);
+                    Rect(x, y, width, height, false);
+                    //float filla = (FillValue / (floatMaxValue);
+                    int percent = ((FillValue) / (MaxValue) * 100);
+                    int fillb = (height * percent) / 100;
+                    //int filla = int.Parse(fillb.ToString());
+                    int fill = ((y + height - 1) - (int)(fillb));
                     int WordLength = 0;
                     foreach (char c in name)
                     {
                         WordLength += 4;
                     }
                     int textPosition = ((x + (width / 2)) - (WordLength / 2));
-                    print(textPosition, (y - 6), name;
-                    if (FillValue == 0)
-                    {
-                        if (ErrorFlash)
-                        {
-                            mask(x + 1, y + 1, x + width - 2, height + y - 2);
-                            ErrorFlash = false;
-                        }
-                        else if (!ErrorFlash)
-                        {
-                            mask(x + 1, fill, x + width - 2, height + y - 2);
-                            ErrorFlash = true;
-                        }
-                    }
-                    else 
-                    { 
-                        mask(x + 1, fill, x + width - 2, height + y - 2); }
-                    if (filla / 100 < Warning)
+                    Print(textPosition, (y - 6), name);
+                    if (fill < Warning)
                     {
                         FillColour = (Color.Red);
                         TextColour = (Color.Red);
                     }
-                    SetForeground(FillColour);
-                    rect(x + 1, y + 1, width - 2, height - 2,true);
-                    mask();
-                    setForeground(TextColour);
+                    if (FillValue == 0)
+                    {
+                        if (ErrorFlash)
+                        {
+                            //mask(x + 1, y + 1, x + width - 2, height + y - 2);
+                            ErrorFlash = false;
+                        }
+                        else if (!ErrorFlash)
+                        {
+                            //mask(x + 1, fill, x + width - 2, height + y - 2);
+                            ErrorFlash = true;
+                        }
+                    }
+                    else
+                    {
+                        SetForeground(FillColour);
+                        Rect(x + 1, fill, width - 2, height - (height - 1 - fill) - 2, true);
+                    }
+                    SetForeground(TextColour);
                     int CharY = 0;
-                    if (value == "%"){
-                    foreach (char c in (percent.ToString()+"%"))
+                    Print(90, 20, fillb.ToString());
+                    if (value == "%")
                     {
-                        print(x + (width / 2) - 2, y + 2 + CharY, c.ToString());
-                        CharY += 6;
-                    }}
-                    else if (value == "m") {
-                    foreach (char c in (FillValue.ToString()+"m"))
+                        foreach (char c in (percent.ToString() + "%"))
+                        {
+                            Print(x + (width / 2) - 2, y + 2 + CharY, c.ToString());
+                            CharY += 6;
+                        }
+                    }
+                    else if (value == "m")
                     {
-                        print(x + (width / 2) - 2, y + 2 + CharY, c.ToString());
-                        CharY += 6;
-                    }}
-                    else {
-                    foreach (char c in (FillValue.ToString()))
+                        foreach (char c in (FillValue.ToString() + "m"))
+                        {
+                            Print(x + (width / 2) - 2, y + 2 + CharY, c.ToString());
+                            CharY += 6;
+                        }
+                    }
+                    else
                     {
-                        print(x + (width / 2) - 2, y + 2 + CharY, c.ToString());
-                        CharY += 6;
-                    }}
+                        foreach (char c in (FillValue.ToString()))
+                        {
+                            Print(x + (width / 2) - 2, y + 2 + CharY, c.ToString());
+                            CharY += 6;
+                        }
+                    }
                 }
             }
             public void Clear()
@@ -592,10 +586,10 @@ namespace IngameScript
         }
         public enum Align { Left, Center, Right };
 
-// Vars 
+        // Vars 
         string Ship = "Beluga Lifter";
-        const string LCDs = "Control Centre LCD";
-        int width = 132;
+        const string LCDs = "LCD1";
+        int width = 177;
         int height = 89;
         int counter = 0;
         int currentAltitude = 0;
@@ -605,13 +599,6 @@ namespace IngameScript
         IMyTextPanel LCD;
         public Program()
         {
-            LCD = GridTerminalSystem.GetBlockWithName(LCDs) as IMyTextPanel;
-            LCD.FontSize = 0.2f;
-            LCD.FontColor = Color.White;
-            LCD.BackgroundColor = Color.Black;
-            LCD.Font = "DotMatrix";
-            LCD.ShowPublicTextOnScreen();
-            G = new Graphics(width, height, LCD, Echo); //width in pixels, height in pixels, lcd panel, The echo method for debugging.
             Runtime.UpdateFrequency = UpdateFrequency.Update10;
         }
 
@@ -622,30 +609,38 @@ namespace IngameScript
 
         public void Main(string arg)
         {
+            if (counter == 0)
+            {
+                LCD = GridTerminalSystem.GetBlockWithName(LCDs) as IMyTextPanel;
+                LCD.FontSize = 0.2f;
+                LCD.FontColor = Color.White;
+                LCD.BackgroundColor = Color.Black;
+                LCD.Font = "DotMatrix";
+                LCD.ShowPublicTextOnScreen();
+                G = new Graphics(width, height, LCD, Echo); //width in pixels, height in pixels, lcd panel, The echo method for debugging.
+            }
             if (arg == "Reset") { currentAltitude = 0; counter = 0; currentFuel = 100; }
-            G.echo("Counter: " + counter);
-            G.clear();
-            G.setBackground(Color.Black);
-            G.setForeground(Color.Red);
-            G.rect("line", 0, 0, 131, 88, false); //LCD Boarder     
+            //G.Echo("Counter: " + counter);
+            G.Clear();
+            G.SetBackground(Color.Black);
+            G.SetForeground(Color.Red);
+            G.Rect(0, 0, 177, 88, false); //LCD Boarder     
 
             G.titleText(Ship, Color.Blue, Color.Blue, 4); //Title
 
             G.FillBar("Alt", "Vertical", 4, 10, 12, 76, 10000, currentAltitude, "m", 10, Color.Blue, Color.Green, Color.Orange);
 
-            G.FillBar("Fuel", "Vertical", 115, 10, 12, 76, 100, currentFuel,"%", 25, Color.Blue, Color.Green, Color.Orange);
+            //G.FillBar("Fuel", "Vertical", 115, 10, 12, 76, 100, currentFuel,"%", 25, Color.Blue, Color.Green, Color.Orange);
 
             G.systemTime(Color.Orange, Color.Blue);
 
-            G.paint();
-
+            G.Draw();
             if (counter < 100)
             {
                 counter += 1;
                 currentAltitude += 100;
                 currentFuel -= 1;
             }
-            G.Draw();
         }
     }
 
