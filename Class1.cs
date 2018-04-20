@@ -18,6 +18,17 @@ namespace IngameScript
 {
     partial class Program : MyGridProgram
     {
+        // Vars 
+        string Ship = "Beluga Lifter";
+        const string LCDs = "LCD1";
+        int width = 177;
+        int height = 89;
+        int currentAltitude = 0;
+        int currentFuel = 100;
+        int counter = 0;
+        Graphics G;
+        IMyTextPanel LCD;
+
         public class Graphics
         {
             private List<IMyTextPanel> Panels;
@@ -29,10 +40,8 @@ namespace IngameScript
             private string[] Foreground = { "\uE2FF", "\uE2FF" }; //White
             private string Background = "\uE100"; //Black
             private int[] clip = new int[4];
-            private bool ErrorFlash = false;
             Action<string> Echo;
             private Random Rand;
-            NumberFormatInfo percentFormat = new NumberFormatInfo {PercentPositivePattern = 1, PercentNegativePattern = 1 };
 
             #region Ascii
             private const int Offset = 0x21;
@@ -366,20 +375,6 @@ namespace IngameScript
                     }
                 }
             }
-            public void mask(int x1, int y1, int x2, int y2)
-            {
-                clip[0] = x1;
-                clip[1] = y1;
-                clip[2] = x2;
-                clip[3] = y2;
-            }
-            public void mask()
-            {
-                clip[0] = 0;
-                clip[1] = 0;
-                clip[2] = Width - 1;
-                clip[3] = Height - 1;
-            }
             public void Print(int x, int y, string text, Align align = Align.Left)
             {
                 y += 4; //Offset so that y represents the top of the text, like the shapes.
@@ -463,7 +458,7 @@ namespace IngameScript
                     SetForeground(BarColour);
                     Rect(x, y, width, height, false);
                     //float filla = (FillValue / (floatMaxValue);
-                    int fill = Map(FillValue,0,MaxValue,0,height-2);
+                    int fill = Map(FillValue, 0, MaxValue, 0, height - 2);
                     int WordLength = 0;
                     foreach (char c in name)
                     {
@@ -471,10 +466,10 @@ namespace IngameScript
                     }
                     int textPosition = ((x + (width / 2)) - (WordLength / 2));
                     Print(textPosition, (y - 6), name);
-                    double Percent = (double)((FillValue*100)/MaxValue);
+                    double Percent = (double)((FillValue * 100) / MaxValue);
                     string[] WarningArray = Warning.Split(':');
-                    int WarningInt = ToInt32.Parse(WarningArray[1])
-                    if (WarningArray[0] = "<")
+                    int WarningInt = Convert.ToInt32(WarningArray[1]);
+                    if (WarningArray[0] == "<")
                     {
                         if (Percent < WarningInt)
                         {
@@ -482,7 +477,7 @@ namespace IngameScript
                             TextColour = (Color.Red);
                         }
                     }
-                    else if (WarningArray[0] = ">")
+                    else if (WarningArray[0] == ">")
                     {
                         if (Percent > WarningInt)
                         {
@@ -492,29 +487,21 @@ namespace IngameScript
                     }
                     if (FillValue <= MinValue || FillValue > MaxValue)
                     {
-                        if (ErrorFlash)
-                        {
-                            Rect(x + 1, (y+1), width - 2, (height-2), true);
-                            ErrorFlash = false;
-                        }
-                        else if (!ErrorFlash)
-                        {
-                            Rect(x + 1, (y+1), width - 2, (height-2), false);
-                            ErrorFlash = true;
-                        }
+                        SetForeground(FillColour);
+                        Rect(x + 1, (y + 1), width - 2, (height - 2), false);
                     }
                     else
                     {
                         SetForeground(FillColour);
-                        Rect(x + 1, ((y+1)+(height-2))-fill, width - 2, fill, true);
+                        Rect(x + 1, ((y + 1) + (height - 2)) - fill, width - 2, fill, true);
                     }
                     SetForeground(TextColour);
                     int CharY = 0;
-                    Print(90, 20, fillb.ToString());
+                    Print(90, 20, fill.ToString());
                     if (value == "%")
                     {
-                        string percent = (Math.Round(Percent,0)).ToString("P2", percentFormat);
-                        foreach (char c in (percent)
+                        string percent = (Math.Round(Percent, 0)).ToString() + "%";
+                        foreach (char c in (percent))
                         {
                             Print(x + (width / 2) - 2, y + 2 + CharY, c.ToString());
                             CharY += 6;
@@ -522,7 +509,7 @@ namespace IngameScript
                     }
                     else if (value == "m")
                     {
-                        foreach (char c in (Math.Round(FillValue,0)).ToString() + "m"))
+                        foreach (char c in (Math.Round((double)FillValue, 0)).ToString() + "m")
                         {
                             Print(x + (width / 2) - 2, y + 2 + CharY, c.ToString());
                             CharY += 6;
@@ -535,6 +522,78 @@ namespace IngameScript
                             Print(x + (width / 2) - 2, y + 2 + CharY, c.ToString());
                             CharY += 6;
                         }
+                    }
+                }
+
+                if (Ori == "Horizontal")
+                {
+                    SetForeground(BarColour);
+                    Rect(x, y, width, height, false);
+                    //float filla = (FillValue / (floatMaxValue);
+                    int fill = Map(FillValue, 0, MaxValue, 0, width - 2);
+                    int WordLength = 0;
+                    foreach (char c in name)
+                    {
+                        WordLength += 4;
+                    }
+                    int textPosition = ((x + (width / 2)) - (WordLength / 2));
+                    Print(textPosition, (y - 6), name);
+                    double Percent = (double)((FillValue * 100) / MaxValue);
+                    string[] WarningArray = Warning.Split(':');
+                    int WarningInt = Convert.ToInt32(WarningArray[1]);
+                    if (WarningArray[0] == "<")
+                    {
+                        if (Percent < WarningInt)
+                        {
+                            FillColour = (Color.Red);
+                            TextColour = (Color.Red);
+                        }
+                    }
+                    else if (WarningArray[0] == ">")
+                    {
+                        if (Percent > WarningInt)
+                        {
+                            FillColour = (Color.Red);
+                            TextColour = (Color.Red);
+                        }
+                    }
+                    if (FillValue <= MinValue || FillValue > MaxValue)
+                    {
+                        SetForeground(FillColour);
+                        Rect(x + 1, (y + 1), width - 2, (height - 2), false);
+                    }
+                    else
+                    {
+                        SetForeground(FillColour);
+                        Rect((x + 1), (y + 1), fill, height-2, true);
+                    }
+                    SetForeground(TextColour);
+                    int CharY = 0;
+                    Print(90, 20, fill.ToString());
+                    if (value == "%")
+                    {
+                        string percent = (Math.Round(Percent, 0)).ToString() + "%";
+                        foreach (char c in (percent))
+                        {
+                            CharY += 6;
+                        }
+                        Print(x + (width / 2) - CharY, y + 2, c.ToString());
+                    }
+                    else if (value == "m")
+                    {
+                        foreach (char c in (Math.Round((double)FillValue, 0)).ToString() + "m")
+                        {
+                            Print(x + (width / 2) - 2, y + 2 + CharY, c.ToString());
+                            CharY += 4;
+                        }
+                    }
+                    else
+                    {
+                        foreach (char c in (FillValue.ToString()))
+                        {
+                            CharY += 4;
+                        }
+                        Print(x + (width / 2) - CharY, y + 2, c.ToString());
                     }
                 }
             }
@@ -596,21 +655,11 @@ namespace IngameScript
             {
                 return ((char)((0xe100 + (Map(color.R, 0, 255, 0, 7) << 6) + (Map(color.G, 0, 255, 0, 7) << 3) + Map(color.B, 0, 255, 0, 7)))).ToString();
             }
-            
+
         }
         public enum Align { Left, Center, Right };
 
-        // Vars 
-        string Ship = "Beluga Lifter";
-        const string LCDs = "LCD1";
-        int width = 177;
-        int height = 89;
-        int counter = 0;
-        int currentAltitude = 0;
-        int currentFuel = 100;
 
-        Graphics G;
-        IMyTextPanel LCD;
         public Program()
         {
             Runtime.UpdateFrequency = UpdateFrequency.Update10;
@@ -643,8 +692,8 @@ namespace IngameScript
             G.titleText(Ship, Color.Blue, Color.Blue, 4); //Title
 
             G.FillBar("Alt", "Vertical", 4, 10, 12, 76, 10000, 0, currentAltitude, "m", ">:100", Color.Blue, Color.Green, Color.Orange);
-
-            //G.FillBar("Fuel", "Vertical", 115, 10, 12, 76, 100, 0, currentFuel,"%", "<:25", Color.Blue, Color.Green, Color.Orange);
+            G.FillBar("Test", "Horizontal", 20, 10, 60, 12, 10000, 0, currentAltitude, "m", ">:100", Color.Blue, Color.Green, Color.Orange);
+            G.FillBar("Fuel", "Vertical", 161, 10, 12, 76, 100, 0, currentFuel, "%", "<:25", Color.Blue, Color.Green, Color.Orange);
 
             G.systemTime(Color.Orange, Color.Blue);
 
@@ -652,10 +701,10 @@ namespace IngameScript
             if (counter < 100)
             {
                 counter += 1;
-                currentAltitude += 100;
+                currentAltitude += 101;
                 currentFuel -= 1;
             }
         }
     }
-
 }
+
