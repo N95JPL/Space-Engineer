@@ -197,7 +197,7 @@ namespace IngameScript
                     }
                 }
             }
-            private void flatBottom(int x1, int y1, int x2, int y2, int x3, int y3)
+            private void FlatBottom(int x1, int y1, int x2, int y2, int x3, int y3)
             {
                 float invslope1 = (float)(x2 - x1) / (y2 - y1);
                 float invslope2 = (float)(x3 - x1) / (y3 - y1);
@@ -210,7 +210,7 @@ namespace IngameScript
                     curx2 += invslope2;
                 }
             }
-            private void flatTop(int x1, int y1, int x2, int y2, int x3, int y3)
+            private void FlatTop(int x1, int y1, int x2, int y2, int x3, int y3)
             {
                 float invslope1 = (float)(x3 - x1) / (y3 - y1);
                 float invslope2 = (float)(x3 - x2) / (y3 - y2);
@@ -223,13 +223,13 @@ namespace IngameScript
                     Line((int)curx1, scanlineY, (int)curx2, scanlineY);
                 }
             }
-            private void swap(ref int a, ref int b)
+            private void Swap(ref int a, ref int b)
             {
                 int c = a;
                 a = b;
                 b = c;
             }
-            public void tri(string m, int x1, int y1, int x2, int y2, int x3, int y3)
+            public void Tri(string m, int x1, int y1, int x2, int y2, int x3, int y3)
             {
                 if (m == "line")
                 {
@@ -241,36 +241,36 @@ namespace IngameScript
                 {
                     if (y1 > y3)
                     {
-                        swap(ref y1, ref y3);
-                        swap(ref x1, ref x3);
+                        Swap(ref y1, ref y3);
+                        Swap(ref x1, ref x3);
                     }
                     if (y1 > y2)
                     {
-                        swap(ref y1, ref y2);
-                        swap(ref x1, ref x2);
+                        Swap(ref y1, ref y2);
+                        Swap(ref x1, ref x2);
                     }
                     if (y2 > y3)
                     {
-                        swap(ref y2, ref y3);
-                        swap(ref x2, ref x3);
+                        Swap(ref y2, ref y3);
+                        Swap(ref x2, ref x3);
                     }
                     if (y2 == y3)
                     {
-                        flatBottom(x1, y1, x2, y2, x3, y3);
+                        FlatBottom(x1, y1, x2, y2, x3, y3);
                     }
                     else if (y1 == y2)
                     {
-                        flatTop(x1, y1, x2, y2, x3, y3);
+                        FlatTop(x1, y1, x2, y2, x3, y3);
                     }
                     else
                     {
                         int x4 = (int)(x1 + ((float)(y2 - y1) / (float)(y3 - y1)) * (x3 - x1));
-                        flatBottom(x1, y1, x2, y2, x4, y2);
-                        flatTop(x2, y2, x4, y2, x3, y3);
+                        FlatBottom(x1, y1, x2, y2, x4, y2);
+                        FlatTop(x2, y2, x4, y2, x3, y3);
                     }
                 }
             }
-            public void ellipse(string m, int cx, int cy, int rx, int ry)
+            public void Ellipse(string m, int cx, int cy, int rx, int ry)
             {
                 int rx2 = rx * rx;
                 int ry2 = ry * ry;
@@ -329,7 +329,7 @@ namespace IngameScript
                     }
                 }
             }
-            public void circle(string m, int cx, int cy, int r)
+            public void Circle(string m, int cx, int cy, int r)
             {
                 if (m == "fill")
                 {
@@ -415,7 +415,7 @@ namespace IngameScript
                     }
                 }
             }
-            public void centerText(string input, Color colour, int y)
+            public void CenterText(string input, Color colour, int y)
             {
                 int WordLength = 0;
                 foreach (char c in input)
@@ -426,7 +426,7 @@ namespace IngameScript
                 SetForeground(colour);
                 Print(textPosition, y, input);
             }
-            public void titleText(string input, Color TextColour, Color BoxColour, int y)
+            public void TitleText(string input, Color TextColour, Color BoxColour, int y)
             {
                 int WordLength = 0;
                 foreach (char c in input)
@@ -439,7 +439,7 @@ namespace IngameScript
                 SetForeground(TextColour);
                 Print(textPosition, y, input.ToUpper());
             }
-            public void systemTime(Color TextColour, Color BoxColour)
+            public void SystemTime(Color TextColour, Color BoxColour)
             {
                 string time = DateTime.Now.ToString("HH:mm:ss");
                 int WordLength = 0;
@@ -692,14 +692,14 @@ namespace IngameScript
             G.SetForeground(Color.Red);
             G.Rect(0, 0, 177, 88, false); //LCD Boarder      
 
-            G.titleText(Ship, Color.SkyBlue, Color.OrangeRed, 4); //Title 
+            G.TitleText(Ship, Color.SkyBlue, Color.OrangeRed, 4); //Title 
 
             G.FillBar("Alt", "Vertical", 4, 10, 12, 76, 10000, 0, currentAltitude, "m", ">:100", Color.Yellow, Color.Green, Color.Gray);
             G.FillBar("Test", "Horizontal", 20, 25, 60, 12, 10000, 0, currentAltitude, "m", ">:100", Color.Blue, Color.Green, Color.Orange);
             G.FillBar("Fuel", "Vertical", 161, 10, 12, 76, 100, 0, currentFuel, "%", "<:25", Color.Magenta, Color.Green, Color.Orange);
-            G.centerText("N95JPL", Color.White, 70);
+            G.CenterText("N95JPL", Color.White, 70);
 
-            G.systemTime(Color.Orange, Color.Blue);
+            G.SystemTime(Color.Orange, Color.Blue);
 
             G.Draw();
             if (counter < 100)
